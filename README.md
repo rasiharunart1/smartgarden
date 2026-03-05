@@ -1,66 +1,100 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🌿 Smart Farming IoT Monitoring System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Laravel Version](https://img.shields.io/badge/laravel-11.x-red.svg)
+![Tailwind CSS](https://img.shields.io/badge/tailwind-3.x-38b2ac.svg)
+![Design](https://img.shields.io/badge/design-Glassmorphism-purple.svg)
 
-## About Laravel
+A modern, visually stunning IoT monitoring platform for Smart Farming. Built with **Laravel 11** and a custom **Glassmorphism** design system, this platform allows users to track sensor data from multiple IoT devices in real-time, control equipment, and analyze historical trends.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Key Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🖥️ Real-time Glassmorphism Dashboard
+- **Dynamic Gauges:** 5 real-time sensor trackers (pH Tanah, Kelembaban Tanah, Cahaya, Suhu Udara, Kelembaban Udara).
+- **Interactive Charts:** Historical trend-line using Chart.js with dual Y-axis scaling for high-value Light (Lux) data.
+- **AJAX Polling:** Dashboard data updates every 3 seconds without refreshing the page.
+- **Device Switcher:** Seamlessly switch between multiple registered IoT devices.
 
-## Learning Laravel
+### 🔌 IoT Connectivity & API
+- **Header-based Auth:** Secure telemetry ingestion using `X-Device-Code` UUID headers.
+- **Two-way Communication:** Devices receive commands (like Pump State) back in the API response.
+- **Simulation Script:** Includes a standalone `simulate.php` script to mock real IoT device behavior.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 🎮 Smart Controls
+- **Persisted Pump Control:** A togglable water pump switch with state persistence in the database.
+- **Visual Feedback:** Animated spinning icons and glow effects when equipment is active.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 📋 Management & Analysis
+- **Device CRUD:** Full management of IoT devices with auto-generated UUIDs.
+- **System Logs:** Comprehensive telemetry logs with filtering capabilities.
+- **Excel/CSV Export:** One-click data export for further analysis in Microsoft Excel.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🛠️ Tech Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **Backend:** Laravel 11 (PHP 8.2+)
+- **Frontend:** Tailwind CSS, Glassmorphism UI
+- **Charts:** Chart.js
+- **Icons:** Lucide Icons
+- **Database:** SQLite (Default)
+- **Authentication:** Laravel Breeze
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## 🚀 Installation
 
-## Contributing
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/smart-farming-iot.git
+   cd smart-farming-iot
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+2. **Install dependencies:**
+   ```bash
+   composer install
+   npm install && npm run build
+   ```
 
-## Code of Conduct
+3. **Environment Setup:**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+4. **Database Migration:**
+   ```bash
+   # Make sure database/database.sqlite exists
+   php artisan migrate
+   ```
 
-## Security Vulnerabilities
+5. **Start the server:**
+   ```bash
+   php artisan serve
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 🛰️ Simulating IoT Data
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+To see the dashboard in action without a physical device, run the included simulator:
+
+```bash
+php simulate.php
+```
+
+This will start sending randomized sensor data to your local server every 3 seconds. You can then toggle the **Pump Switch** on the dashboard and see the simulator receive the "ON/OFF" command in real-time.
+
+---
+
+## 📸 Screenshots
+
+*(Add your screenshots here after deployment)*
+
+---
+
+## 📄 License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
