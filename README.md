@@ -17,19 +17,24 @@ A modern, visually stunning IoT monitoring platform for Smart Farming. Built wit
 - **AJAX Polling:** Dashboard data updates every 3 seconds without refreshing the page.
 - **Device Switcher:** Seamlessly switch between multiple registered IoT devices.
 
-### 🔌 IoT Connectivity & API
-- **Header-based Auth:** Secure telemetry ingestion using `X-Device-Code` UUID headers.
-- **Two-way Communication:** Devices receive commands (like Pump State) back in the API response.
-- **Simulation Script:** Includes a standalone `simulate.php` script to mock real IoT device behavior.
+### 📡 Hardware & Firmware Support
+- **ESP32 Ready:** Optimized firmware for ESP32 microcontrollers with HTTPS secure communication.
+- **Sensor Integration:** Native support for:
+  - **DHT22 (AM2302):** High-precision Air Temperature & Humidity.
+  - **BH1750 (GY-302):** Digital I2C Light Intensity sensor.
+  - **Analog Soil Moisture:** Plant hydration level monitoring.
+  - **Analog pH Sensor:** Soil acidity/alkalinity tracking.
+- **SSL Flexibility:** Uses `setInsecure()` logic for easy deployment on HTTPS domains without manual SSL certificate management.
 
 ### 🎮 Smart Controls
 - **Persisted Pump Control:** A togglable water pump switch with state persistence in the database.
+- **Bi-directional Sync:** Commands sent from the dashboard are received by the ESP32 in real-time during telemetry pings.
 - **Visual Feedback:** Animated spinning icons and glow effects when equipment is active.
 
-### 📋 Management & Analysis
-- **Device CRUD:** Full management of IoT devices with auto-generated UUIDs.
-- **System Logs:** Comprehensive telemetry logs with filtering capabilities.
-- **Excel/CSV Export:** One-click data export for further analysis in Microsoft Excel.
+### � Management & Analysis
+- **Device CRUD:** Full management of IoT devices with auto-generated UUIDs for API security.
+- **System Logs:** Comprehensive telemetry logs with filtering and search capabilities.
+- **Excel/CSV Export:** One-click data export for further analysis in Microsoft Excel, with smart filtering by device.
 
 ---
 
@@ -86,12 +91,6 @@ php simulate.php
 ```
 
 This will start sending randomized sensor data to your local server every 3 seconds. You can then toggle the **Pump Switch** on the dashboard and see the simulator receive the "ON/OFF" command in real-time.
-
----
-
-## 📸 Screenshots
-
-*(Add your screenshots here after deployment)*
 
 ---
 
