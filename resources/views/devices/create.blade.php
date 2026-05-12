@@ -115,13 +115,16 @@
                 <!-- Status Checkbox -->
                 <div class="bg-black/10 rounded-xl p-4 border border-white/5 flex items-center">
                     <label for="status" class="inline-flex items-center cursor-pointer group">
-                        <input id="status" type="checkbox" class="w-5 h-5 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent outline-none" name="status" {{ old('status', true) ? 'checked' : '' }}>
+                        <input id="status" type="checkbox" value="1" class="w-5 h-5 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-offset-transparent outline-none" name="status" {{ old('status', true) ? 'checked' : '' }}>
                         <span class="ml-3 text-sm text-white/80 font-medium group-hover:text-white transition-colors">
                             Initialize as Active
                             <p class="text-xs text-white/40 font-normal mt-0.5">Allow device to start pushing telemetry data immediately upon creation.</p>
                         </span>
                     </label>
                 </div>
+                @error('status')
+                    <span class="text-red-400 text-xs mt-1 block px-2">{{ $message }}</span>
+                @enderror
 
                 <div class="flex items-center justify-between pt-4 mt-8 border-t border-white/10">
                     <a href="{{ route('devices.index') }}" class="text-white/60 hover:text-white transition-colors text-sm px-4 py-2 flex items-center">

@@ -48,6 +48,9 @@ class TelemetryController extends Controller
         try {
             // Store Log Data
             $log = $device->logs()->create($validated);
+            
+            // Update Heartbeat
+            $device->update(['last_seen_at' => now()]);
 
             return response()->json([
                 'status' => 'success',

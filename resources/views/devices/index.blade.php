@@ -128,7 +128,7 @@
                                     <i data-lucide="map-pin" class="w-4 h-4 mr-1.5 opacity-50"></i> {{ $device->location ?? 'Not specified' }}
                                 </td>
                                 <td class="p-6 align-middle">
-                                    @if($device->status)
+                                    @if($device->is_online)
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                             <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5 animate-pulse"></span> Active
                                         </span>
@@ -138,12 +138,16 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="p-6 align-middle text-right flex justify-end gap-3">
+                                <td class="p-6 align-middle text-right flex justify-end gap-3 items-center">
+                                    <a href="{{ route('devices.fuzzy', $device) }}" class="p-2 bg-white/5 hover:bg-purple-500/20 hover:text-purple-400 hover:border-purple-500/30 border border-transparent rounded-xl transition-all text-white/60" title="Fuzzy Tuning">
+                                        <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+                                    </a>
+                                    
                                     <a href="{{ route('devices.edit', $device) }}" class="p-2 bg-white/5 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/30 border border-transparent rounded-xl transition-all text-white/60" title="Edit">
                                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                                     </a>
                                     
-                                    <form action="{{ route('devices.destroy', $device) }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to delete this device? All IoT telemetry logs under this device will be permanently deleted.');" class="inline">
+                                    <form action="{{ route('devices.destroy', $device) }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to delete this device? All IoT telemetry logs under this device will be permanently deleted.');" class="inline m-0 flex items-center">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-2 bg-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 border border-transparent rounded-xl transition-all text-white/60" title="Delete">

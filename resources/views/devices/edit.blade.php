@@ -134,7 +134,7 @@
                     <!-- Status Checkbox -->
                     <div class="bg-black/10 rounded-xl p-4 border border-white/5 flex items-center">
                         <label for="status" class="inline-flex items-center cursor-pointer group w-full">
-                            <input id="status" type="checkbox" class="w-5 h-5 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-offset-transparent outline-none" name="status" {{ old('status', $device->status) ? 'checked' : '' }}>
+                        <input id="status" type="checkbox" value="1" class="w-5 h-5 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 focus:ring-offset-transparent outline-none" name="status" {{ old('status', $device->status) ? 'checked' : '' }}>
                             <div class="ml-3 flex-1 flex flex-col justify-center">
                                 <span class="text-sm text-white/80 font-medium group-hover:text-white transition-colors">
                                     Device Online Status
@@ -143,6 +143,9 @@
                             </div>
                         </label>
                     </div>
+                    @error('status')
+                        <span class="text-red-400 text-xs mt-1 block px-2">{{ $message }}</span>
+                    @enderror
 
                     <div class="flex flex-col-reverse sm:flex-row items-center justify-between pt-4 mt-8 border-t border-white/10 gap-4">
                         <a href="{{ route('devices.index') }}" class="w-full sm:w-auto text-center text-white/60 hover:text-white transition-colors text-sm px-4 py-2 flex items-center justify-center">

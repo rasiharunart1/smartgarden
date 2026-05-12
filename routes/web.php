@@ -26,6 +26,8 @@ Route::middleware('auth')->group(function () {
     // Device CRUD
     Route::resource('devices', DeviceController::class);
     Route::post('/devices/{device}/toggle-pump', [DeviceController::class, 'togglePump'])->name('devices.toggle_pump');
+    Route::get('/devices/{device}/fuzzy', [\App\Http\Controllers\FuzzyConfigController::class, 'edit'])->name('devices.fuzzy');
+    Route::put('/devices/{device}/fuzzy', [\App\Http\Controllers\FuzzyConfigController::class, 'update'])->name('devices.fuzzy.update');
     
     // Logs
     Route::get('/logs', [SystemLogController::class, 'index'])->name('logs.index');
