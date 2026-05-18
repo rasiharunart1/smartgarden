@@ -37,11 +37,13 @@ return [
         ],
 
         'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'driver'     => 'local',
+            'root'       => env('FILESYSTEM_DISK', 'local') === 'public'
+                            ? public_path('storage')          // production: simpan langsung ke public/storage
+                            : storage_path('app/public'),     // lokal: simpan ke storage/app/public (butuh storage:link)
+            'url'        => env('APP_URL').'/storage',
             'visibility' => 'public',
-            'throw' => false,
+            'throw'      => false,
         ],
 
         's3' => [

@@ -10,6 +10,8 @@
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -67,31 +69,30 @@
 </head>
 <body class="text-white p-4 md:p-8">
 
-    <!-- Top Navigation / Controls -->
-    <div class="max-w-7xl mx-auto mb-6 flex flex-wrap justify-between items-center bg-black/20 p-4 rounded-2xl glass gap-4">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('profile.edit') }}" class="flex items-center space-x-2 hover:text-emerald-400 transition">
-                <i data-lucide="user" class="w-5 h-5"></i>
-                <span class="font-medium hidden sm:inline">{{ Auth::user()->name }}</span>
+    <!-- Top Navigation -->
+    <div class="max-w-7xl mx-auto mb-4">
+        <div class="flex justify-between items-center bg-black/20 px-4 py-3 rounded-t-2xl glass border-b border-white/10">
+            <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 hover:text-emerald-400 transition">
+                <img src="{{ Auth::user()->avatar_url }}" class="w-8 h-8 rounded-full object-cover border border-white/20 flex-shrink-0" alt="avatar">
+                <span class="font-medium text-sm truncate max-w-[120px] sm:max-w-none">{{ Auth::user()->name }}</span>
             </a>
-            <span class="text-white/30 hidden sm:inline">|</span>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="text-sm hover:text-red-400 text-white/70 transition flex items-center">
-                    <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Logout
+                <button type="submit" class="text-xs sm:text-sm hover:text-red-400 text-white/70 transition flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">Logout</span>
                 </button>
             </form>
         </div>
-
-        <div class="flex items-center space-x-1 sm:space-x-3 overflow-x-auto pb-1 sm:pb-0">
-            <a href="{{ route('dashboard') }}" class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-3 py-2 whitespace-nowrap">
-                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-1"></i> Dashboard
+        <div class="flex items-center gap-1 bg-black/10 px-4 py-2 rounded-b-2xl glass">
+            <a href="{{ route('dashboard') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-gauge mr-1"></i><span class="hidden sm:inline">Dashboard</span>
             </a>
-            <a href="{{ route('devices.index') }}" class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-3 py-2 whitespace-nowrap">
-                <i data-lucide="hard-drive" class="w-4 h-4 mr-1"></i> Devices
+            <a href="{{ route('devices.index') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-microchip mr-1"></i><span class="hidden sm:inline">Devices</span>
             </a>
-            <a href="{{ route('logs.index') }}" class="glass border-teal-500/50 rounded-lg px-4 py-2 text-white text-sm bg-teal-500/20 transition flex items-center shadow-lg shadow-teal-500/20 whitespace-nowrap">
-                <i data-lucide="history" class="w-4 h-4 mr-2"></i> Sensor Logs
+            <a href="{{ route('logs.index') }}" class="flex-1 sm:flex-none text-white text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i><span class="hidden sm:inline">Logs</span>
             </a>
         </div>
     </div>

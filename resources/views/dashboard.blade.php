@@ -11,8 +11,8 @@
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- MQTT.js for Realtime WebSockets -->
@@ -63,49 +63,55 @@
 
 <body class="text-white p-4 md:p-8">
 
-    <!-- Top Navigation / Controls -->
-    <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center bg-black/20 p-4 rounded-2xl glass">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('profile.edit') }}" class="flex items-center space-x-2 hover:text-emerald-400 transition">
-                <i data-lucide="user" class="w-5 h-5"></i>
-                <span class="font-medium hidden sm:inline">{{ Auth::user()->name }}</span>
-            </a>
-            <span class="text-white/30 hidden sm:inline">|</span>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="text-sm hover:text-red-400 text-white/70 transition flex items-center">
-                    <i data-lucide="log-out" class="w-4 h-4 mr-1"></i> Logout
-                </button>
-            </form>
-        </div>
-
-        <div class="flex items-center space-x-3">
-            @if($devices->count() > 0)
-                <form action="{{ route('dashboard') }}" method="GET" class="flex items-center space-x-2">
-                    <select name="device_id" onchange="this.form.submit()"
-                        class="glass rounded-lg text-white bg-transparent border-white/30 px-4 py-2 text-sm focus:ring-emerald-500 appearance-none">
-                        @foreach($devices as $dev)
-                            <option class="text-black" value="{{ $dev->id }}" {{ ($activeDevice && $activeDevice->id == $dev->id) ? 'selected' : '' }}>
-                                {{ $dev->device_name }}
-                            </option>
-                        @endforeach
-                    </select>
+    <!-- Top Navigation -->
+    <div class="max-w-7xl mx-auto mb-4">
+        <!-- Row 1: User + Logout -->
+        <div class="flex justify-between items-center bg-black/20 px-4 py-3 rounded-t-2xl glass border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 hover:text-emerald-400 transition">
+                    <img src="{{ Auth::user()->avatar_url }}" class="w-8 h-8 rounded-full object-cover border border-white/20 flex-shrink-0" alt="avatar">
+                    <span class="font-medium text-sm truncate max-w-[120px] sm:max-w-none">{{ Auth::user()->name }}</span>
+                </a>
+            </div>
+            <div class="flex items-center gap-2">
+                @if($devices->count() > 0)
+                    <form action="{{ route('dashboard') }}" method="GET">
+                        <select name="device_id" onchange="this.form.submit()"
+                            class="glass rounded-lg text-white bg-transparent border-white/30 px-3 py-1.5 text-xs sm:text-sm focus:ring-emerald-500 appearance-none max-w-[140px] sm:max-w-none">
+                            @foreach($devices as $dev)
+                                <option class="text-black" value="{{ $dev->id }}" {{ ($activeDevice && $activeDevice->id == $dev->id) ? 'selected' : '' }}>
+                                    {{ $dev->device_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                @endif
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="text-xs sm:text-sm hover:text-red-400 text-white/70 transition flex items-center">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline ml-1">Logout</span>
+                    </button>
                 </form>
-            @endif
-            <a href="{{ route('devices.index') }}"
-                class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-2">
-                <i data-lucide="hard-drive" class="w-4 h-4 mr-1"></i> Devices
+            </div>
+        </div>
+        <!-- Row 2: Navigation links -->
+        <div class="flex items-center gap-1 bg-black/10 px-4 py-2 rounded-b-2xl glass">
+            <a href="{{ route('dashboard') }}" class="flex-1 sm:flex-none text-white text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                <i class="fa-solid fa-gauge mr-1"></i> <span class="hidden sm:inline">Dashboard</span>
             </a>
-            <a href="{{ route('logs.index') }}"
-                class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-2">
-                <i data-lucide="history" class="w-4 h-4 mr-1"></i> Logs
+            <a href="{{ route('devices.index') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-microchip mr-1"></i> <span class="hidden sm:inline">Devices</span>
+            </a>
+            <a href="{{ route('logs.index') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i> <span class="hidden sm:inline">Logs</span>
             </a>
         </div>
     </div>
 
     @if(!$activeDevice)
         <div class="max-w-6xl mx-auto glass rounded-3xl p-12 text-center mt-12">
-            <i data-lucide="alert-circle" class="w-20 h-20 mx-auto mb-6 text-amber-400"></i>
+            <i class="fa-solid fa-circle-exclamation text-8xl mx-auto mb-6 text-amber-400 block"></i>
             <h2 class="text-3xl font-bold mb-4">No Devices Configured</h2>
             <p class="text-white/70 mb-8 max-w-md mx-auto">You need to add a device to start monitoring and receiving
                 telemetry data.</p>
@@ -117,14 +123,12 @@
         <div class="max-w-6xl mx-auto space-y-6">
 
             <!-- Header / Device Info -->
-            <header class="glass rounded-3xl p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center cursor-default">
-                <div
-                    class="w-32 h-32 md:w-40 md:h-40 bg-gradient-to-tr from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg border border-white/30 relative overflow-hidden group">
-                    <div
-                        class="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000">
-                    </div>
-                    <i data-lucide="sprout"
-                        class="w-16 h-16 text-white drop-shadow-md transform group-hover:scale-110 transition-transform"></i>
+            <header class="glass rounded-3xl p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row gap-4 sm:gap-8 items-center cursor-default">
+                <div class="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl shadow-lg border border-white/30 relative overflow-hidden group flex-shrink-0">
+                    <img src="{{ $activeDevice->photo_url }}"
+                         alt="{{ $activeDevice->device_name }}"
+                         class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
                 <div class="flex-1 text-center md:text-left">
                     <div class="flex flex-col md:flex-row md:items-center gap-3 mb-2">
@@ -137,7 +141,7 @@
                         </span>
                     </div>
                     <p class="text-white/70 max-w-2xl leading-relaxed mt-3">
-                        <i data-lucide="map-pin" class="inline w-4 h-4 mr-1 text-emerald-400"></i> Location:
+                        <i class="fa-solid fa-location-dot mr-1 text-emerald-400"></i> Location:
                         {{ $activeDevice->location ?? 'Not specified' }} <br>
 
                     </p>
@@ -148,7 +152,7 @@
                         @if($latestLog)
                             <span id="data-age"
                                 class="bg-black/20 px-3 py-1 rounded-full border border-white/5 flex items-center">
-                                <i data-lucide="clock" class="w-3 h-3 mr-1 text-emerald-400"></i>
+                                <i class="fa-solid fa-clock mr-1 text-emerald-400"></i>
                                 Last Data: {{ $latestLog->created_at->diffForHumans() }}
                             </span>
                         @endif
@@ -157,15 +161,14 @@
             </header>
 
             <!-- Grid Sensor -->
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                 <!-- pH Tanah -->
                 <div
                     class="glass p-4 rounded-2xl flex flex-col items-center justify-center transition-all hover:bg-white/20 hover:scale-105 cursor-default relative overflow-hidden group">
                     <div
                         class="absolute -right-8 -top-8 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all">
                     </div>
-                    <div class="p-2 rounded-full mb-2 bg-blue-500 shadow-lg shadow-blue-500/30 z-10"><i
-                            data-lucide="activity" class="w-5 h-5"></i></div>
+                    <div class="p-2 rounded-full mb-2 bg-blue-500 shadow-lg shadow-blue-500/30 z-10"><i class="fa-solid fa-flask"></i></div>
                     <h3 class="text-[10px] font-medium text-white/70 uppercase tracking-widest z-10">pH Tanah</h3>
                     <div class="flex items-baseline mt-1 z-10"><span id="val_ph"
                             class="text-xl font-bold">{{ $latestLog->ph ?? '--' }}</span><span
@@ -185,8 +188,7 @@
                     <div
                         class="absolute -right-8 -top-8 w-24 h-24 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition-all">
                     </div>
-                    <div class="p-2 rounded-full mb-2 bg-cyan-500 shadow-lg shadow-cyan-500/30 z-10"><i
-                            data-lucide="droplets" class="w-5 h-5"></i></div>
+                    <div class="p-2 rounded-full mb-2 bg-cyan-500 shadow-lg shadow-cyan-500/30 z-10"><i class="fa-solid fa-droplet"></i></div>
                     <h3 class="text-[10px] font-medium text-white/70 uppercase tracking-widest z-10">Lembab Tanah</h3>
                     <div class="flex items-baseline mt-1 z-10"><span id="val_soil"
                             class="text-xl font-bold">{{ $latestLog->soil_moisture ?? '--' }}</span><span
@@ -206,8 +208,7 @@
                     <div
                         class="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all">
                     </div>
-                    <div class="p-2 rounded-full mb-2 bg-amber-500 shadow-lg shadow-amber-500/30 z-10"><i data-lucide="sun"
-                            class="w-5 h-5"></i></div>
+                    <div class="p-2 rounded-full mb-2 bg-amber-500 shadow-lg shadow-amber-500/30 z-10"><i class="fa-solid fa-sun"></i></div>
                     <h3 class="text-[10px] font-medium text-white/70 uppercase tracking-widest z-10">Cahaya</h3>
                     <div class="flex items-baseline mt-1 z-10"><span id="val_light"
                             class="text-xl font-bold">{{ $latestLog->light_intensity ?? '--' }}</span><span
@@ -227,8 +228,7 @@
                     <div
                         class="absolute -right-8 -top-8 w-24 h-24 bg-orange-500/10 rounded-full blur-xl group-hover:bg-orange-500/20 transition-all">
                     </div>
-                    <div class="p-2 rounded-full mb-2 bg-orange-500 shadow-lg shadow-orange-500/30 z-10"><i
-                            data-lucide="thermometer" class="w-5 h-5"></i></div>
+                    <div class="p-2 rounded-full mb-2 bg-orange-500 shadow-lg shadow-orange-500/30 z-10"><i class="fa-solid fa-temperature-half"></i></div>
                     <h3 class="text-[10px] font-medium text-white/70 uppercase tracking-widest z-10">Suhu Udara</h3>
                     <div class="flex items-baseline mt-1 z-10"><span id="val_temp"
                             class="text-xl font-bold">{{ $latestLog->temperature ?? '--' }}</span><span
@@ -248,8 +248,7 @@
                     <div
                         class="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all">
                     </div>
-                    <div class="p-2 rounded-full mb-2 bg-indigo-500 shadow-lg shadow-indigo-500/30 z-10"><i
-                            data-lucide="waves" class="w-5 h-5"></i></div>
+                    <div class="p-2 rounded-full mb-2 bg-indigo-500 shadow-lg shadow-indigo-500/30 z-10"><i class="fa-solid fa-wind"></i></div>
                     <h3 class="text-[10px] font-medium text-white/70 uppercase tracking-widest z-10">Lembab Udara</h3>
                     <div class="flex items-baseline mt-1 z-10"><span id="val_hum"
                             class="text-xl font-bold">{{ $latestLog->humidity ?? '--' }}</span><span
@@ -267,13 +266,13 @@
             </div>
 
             <!-- Baris Bawah: Grafik & Kontrol -->
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
 
                 <!-- Grafik Pemantauan -->
                 <div class="lg:col-span-3 glass rounded-3xl p-6 min-h-[400px]">
                     <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
                         <h2 class="text-xl font-bold flex items-center gap-2">
-                            <i data-lucide="activity" class="text-emerald-400"></i>
+                            <i class="fa-solid fa-chart-line text-emerald-400"></i>
                             Tren Lingkungan <span class="text-sm font-normal text-white/50">(24 Data Terakhir)</span>
                         </h2>
                     </div>
@@ -282,7 +281,7 @@
                             <canvas id="envChart"></canvas>
                         @else
                             <div class="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-                                <i data-lucide="bar-chart-2" class="w-12 h-12 mb-2 opacity-50"></i>
+                                <i class="fa-solid fa-chart-bar text-5xl mb-2 opacity-50"></i>
                                 Belum ada data terekam untuk perangkat ini.
                             </div>
                         @endif
@@ -299,7 +298,7 @@
                             class="relative inline-flex h-16 w-28 items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-transparent">
                             <span id="pumpHandle"
                                 class="inline-block h-12 w-12 translate-x-2 transform rounded-full bg-white shadow-lg transition duration-300 flex items-center justify-center">
-                                <i data-lucide="power" class="text-gray-400 w-5 h-5 transition-colors"></i>
+                                <i class="fa-solid fa-power-off text-gray-400 transition-colors"></i>
                             </span>
                         </button>
                         <span id="pumpStatusLabel"
@@ -317,7 +316,7 @@
                             class="relative w-24 h-24 rounded-full flex items-center justify-center bg-white/5 transition-all duration-500 z-10">
                             <div class="w-20 h-20 rounded-full border-4 border-dashed border-white/10 opacity-30 flex items-center justify-center"
                                 id="pumpSpin">
-                                <i data-lucide="waves" class="text-white/20 w-8 h-8 transition-colors"></i>
+                                <i class="fa-solid fa-droplet text-white/20 text-2xl transition-colors"></i>
                             </div>
                         </div>
                     </div>
@@ -328,17 +327,10 @@
 
         <!-- Scripts for Icons and Chart -->
         <script>
-            // Inisialisasi Ikon Lucide
-            lucide.createIcons();
-
             // Update Waktu
             function updateTime() {
                 const now = new Date();
-                document.getElementById('last-update').innerHTML = '<i data-lucide="monitor" class="w-3 h-3 inline mr-1 text-emerald-400"></i> Live: ' + now.toLocaleTimeString('id-ID');
-                // Re-init lucide for the dynamically added icon
-                lucide.createIcons({
-                    root: document.getElementById('last-update')
-                });
+                document.getElementById('last-update').innerHTML = '<i class="fa-solid fa-circle-dot fa-xs mr-1 text-emerald-400"></i> Live: ' + now.toLocaleTimeString('id-ID');
             }
             setInterval(updateTime, 1000);
             updateTime();
@@ -724,8 +716,7 @@
                         // Update Time age
                         const ageDisp = document.getElementById('data-age');
                         if (ageDisp) {
-                            ageDisp.innerHTML = `<i data-lucide="clock" class="w-3 h-3 mr-1 text-emerald-400"></i> Last Data: Just now`;
-                            lucide.createIcons({ root: ageDisp });
+                            ageDisp.innerHTML = `<i class="fa-solid fa-clock mr-1 text-emerald-400"></i> Last Data: Just now`;
                         }
 
                         // Update Chart Instance realtime

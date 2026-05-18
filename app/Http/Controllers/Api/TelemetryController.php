@@ -52,13 +52,28 @@ class TelemetryController extends Controller
             // Update Heartbeat
             $device->update(['last_seen_at' => now()]);
 
+            // Load fuzzy config (create default jika belum ada)
+            $fuzzyConfig = $device->fuzzyConfig()->firstOrCreate(
+                ['device_id' => $device->id]
+            );
+
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'Telemetry data saved correctly',
-                'data' => new DeviceLogResource($log),
+                'data'    => new DeviceLogResource($log),
                 'device_controls' => [
-                    'pump_state' => $device->pump_state
-                ]
+                    'pump_state' => $device->pump_state,
+                ],
+                'fuzzy_config' => [
+                    'moisture_kering_max' => (float) $fuzzyConfig->moisture_kering_max,
+                    'moisture_normal_min' => (float) $fuzzyConfig->moisture_normal_min,
+                    'moisture_normal_max' => (float) $fuzzyConfig->moisture_normal_max,
+                    'moisture_basah_min'  => (float) $fuzzyConfig->moisture_basah_min,
+                    'ph_asam_max'         => (float) $fuzzyConfig->ph_asam_max,
+                    'ph_netral_min'       => (float) $fuzzyConfig->ph_netral_min,
+                    'ph_netral_max'       => (float) $fuzzyConfig->ph_netral_max,
+                    'ph_basa_min'         => (float) $fuzzyConfig->ph_basa_min,
+                ],
             ], 201);
             
         } catch (\Exception $e) {

@@ -10,8 +10,8 @@
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -47,24 +47,23 @@
 </head>
 <body class="text-white p-4 md:p-8">
 
-    <!-- Top Navigation / Controls -->
-    <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center bg-black/20 p-4 rounded-2xl glass">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('profile.edit') }}" class="flex items-center space-x-2 hover:text-emerald-400 transition">
-                <i data-lucide="user" class="w-5 h-5"></i>
-                <span class="font-medium hidden sm:inline">{{ Auth::user()->name }}</span>
+    <!-- Top Navigation -->
+    <div class="max-w-7xl mx-auto mb-4">
+        <div class="flex justify-between items-center bg-black/20 px-4 py-3 rounded-t-2xl glass border-b border-white/10">
+            <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 hover:text-emerald-400 transition">
+                <img src="{{ Auth::user()->avatar_url }}" class="w-8 h-8 rounded-full object-cover border border-white/20 flex-shrink-0" alt="avatar">
+                <span class="font-medium text-sm truncate max-w-[120px] sm:max-w-none">{{ Auth::user()->name }}</span>
             </a>
         </div>
-
-        <div class="flex items-center space-x-3 overflow-x-auto">
-            <a href="{{ route('dashboard') }}" class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-2">
-                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-1"></i> Dashboard
+        <div class="flex items-center gap-1 bg-black/10 px-4 py-2 rounded-b-2xl glass">
+            <a href="{{ route('dashboard') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-gauge mr-1"></i><span class="hidden sm:inline">Dashboard</span>
             </a>
-            <a href="{{ route('devices.index') }}" class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-2">
-                <i data-lucide="hard-drive" class="w-4 h-4 mr-1"></i> Devices
+            <a href="{{ route('devices.index') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-microchip mr-1"></i><span class="hidden sm:inline">Devices</span>
             </a>
-            <a href="{{ route('logs.index') }}" class="text-white/70 hover:text-emerald-400 transition text-sm flex items-center px-2">
-                <i data-lucide="history" class="w-4 h-4 mr-1"></i> Logs
+            <a href="{{ route('logs.index') }}" class="flex-1 sm:flex-none text-white/70 hover:text-emerald-400 text-xs sm:text-sm flex items-center justify-center sm:justify-start px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i><span class="hidden sm:inline">Logs</span>
             </a>
         </div>
     </div>
@@ -73,7 +72,7 @@
         <header class="text-center mb-8 flex flex-col items-center">
             <div class="flex space-x-4 items-center">
                 <div class="w-16 h-16 bg-gradient-to-tr from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-white/30 mb-4 cursor-default">
-                    <i data-lucide="brain-circuit" class="w-8 h-8 text-white drop-shadow-md"></i>
+                    <i class="fa-solid fa-brain text-2xl text-white drop-shadow-md"></i>
                 </div>
             </div>
             <h1 class="text-3xl font-extrabold tracking-tight">Fuzzy Parameter Tuning</h1>
@@ -82,7 +81,7 @@
 
         @if(session('success'))
             <div class="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 p-4 rounded-xl mb-6 flex items-center">
-                <i data-lucide="check-circle" class="w-5 h-5 mr-3"></i>
+                <i class="fa-solid fa-circle-check mr-3"></i>
                 {{ session('success') }}
             </div>
         @endif
@@ -97,11 +96,11 @@
                 <!-- Kelembapan Tanah Group -->
                 <div class="space-y-4">
                     <h2 class="text-xl font-bold border-b border-white/20 pb-2 flex items-center text-blue-300">
-                        <i data-lucide="droplet" class="w-5 h-5 mr-2"></i> Soil Moisture Parameters (%)
+                        <i class="fa-solid fa-droplet mr-2"></i> Soil Moisture Parameters (%)
                     </h2>
                     <p class="text-xs text-white/50 mb-4">Set boundaries for Dry (Kering), Normal, and Wet (Basah) states (0-100%).</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                         <!-- Kering Max -->
                         <div>
                             <label for="moisture_kering_max" class="block font-medium text-xs text-white/80 mb-2">Max Kering <span class="text-red-400">*</span></label>
@@ -135,7 +134,7 @@
                 <!-- pH Tanah Group -->
                 <div class="space-y-4 pt-4">
                     <h2 class="text-xl font-bold border-b border-white/20 pb-2 flex items-center text-emerald-300">
-                        <i data-lucide="flask-conical" class="w-5 h-5 mr-2"></i> Soil pH Parameters
+                        <i class="fa-solid fa-flask mr-2"></i> Soil pH Parameters
                     </h2>
                     <p class="text-xs text-white/50 mb-4">Set boundaries for Acidic (Asam), Neutral (Netral), and Alkaline (Basa) states (0-14).</p>
 
@@ -170,21 +169,18 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col-reverse sm:flex-row items-center justify-between pt-6 mt-8 border-t border-white/10 gap-4">
-                    <a href="{{ route('devices.index') }}" class="w-full sm:w-auto text-center text-white/60 hover:text-white transition-colors text-sm px-4 py-2 flex items-center justify-center">
-                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Back to Devices
+                <div class="flex flex-col sm:flex-row items-center justify-between pt-6 mt-6 border-t border-white/10 gap-3">
+                    <a href="{{ route('devices.index') }}" class="w-full sm:w-auto text-center text-white/60 hover:text-white transition-colors text-sm px-4 py-2.5 flex items-center justify-center rounded-xl border border-white/10 hover:bg-white/5">
+                        <i class="fa-solid fa-arrow-left mr-2"></i> Back to Devices
                     </a>
-
-                    <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 flex items-center justify-center transform hover:-translate-y-0.5">
-                        <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save Parameters
+                    <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.3)] text-white font-bold py-3 px-8 rounded-xl transition-all flex items-center justify-center">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i> Save Parameters
                     </button>
                 </div>
             </form>
         </div>
     </div>
     
-    <script>
-        lucide.createIcons();
-    </script>
+
 </body>
 </html>

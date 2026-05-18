@@ -17,3 +17,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+# Deploy files (sensitif - jangan di-commit)
+sena_export.sql
+deploy-prepare.bat

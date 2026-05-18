@@ -16,7 +16,19 @@ class Device extends Model
         'location',
         'status',
         'pump_state',
+        'photo',
     ];
+
+    /**
+     * Get the full URL for the device photo.
+     */
+    public function getPhotoUrlAttribute(): string
+    {
+        if ($this->photo && \Storage::disk('public')->exists($this->photo)) {
+            return asset('storage/' . $this->photo);
+        }
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->device_name) . '&background=064e3b&color=34d399&size=128&rounded=true&bold=true';
+    }
 
     protected $casts = [
         'status' => 'boolean',
