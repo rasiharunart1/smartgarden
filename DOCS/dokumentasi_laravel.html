@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SENA Smart Garden - Dokumentasi Laravel</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Georgia,serif;background:#f8f7f4;color:#2d2d2d;line-height:1.8}a{color:#4a6fa5;text-decoration:none}.wrap{max-width:1100px;margin:0 auto;padding:40px 24px}header{background:#fff;border-bottom:1px solid #e5e0d8;padding:32px 0;margin-bottom:48px}.logo{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-bottom:8px}h1{font-size:2rem;font-weight:700;color:#1a1a1a;letter-spacing:-.5px}header p{color:#666;margin-top:6px;font-size:.95rem}nav{background:#fff;border:1px solid #e5e0d8;border-radius:6px;padding:24px 28px;margin-bottom:48px}nav h2{font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:#999;margin-bottom:16px}nav ol{padding-left:20px}nav li{margin:6px 0}nav a{color:#4a6fa5;font-size:.92rem}section{background:#fff;border:1px solid #e5e0d8;border-radius:6px;padding:40px;margin-bottom:36px}section h2{font-size:1.3rem;font-weight:700;color:#1a1a1a;border-bottom:2px solid #e5e0d8;padding-bottom:12px;margin-bottom:24px;letter-spacing:-.3px}section h3{font-size:1rem;font-weight:700;color:#1a1a1a;margin:28px 0 12px}section h4{font-size:.88rem;font-weight:700;color:#555;letter-spacing:1px;text-transform:uppercase;margin:20px 0 8px}p{margin-bottom:14px;color:#444;font-size:.94rem}ul,ol{padding-left:22px;margin-bottom:14px}li{margin:5px 0;font-size:.94rem;color:#444}pre{background:#f4f3f0;border:1px solid #e5e0d8;border-radius:4px;padding:20px;overflow-x:auto;margin:16px 0;font-size:.82rem;line-height:1.7;font-family:"Courier New",monospace}code{background:#f4f3f0;padding:2px 6px;border-radius:3px;font-size:.84rem;font-family:"Courier New",monospace;color:#c0392b}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.88rem}th{background:#f4f3f0;text-align:left;padding:10px 14px;border:1px solid #e5e0d8;font-weight:700;color:#555;letter-spacing:.5px;font-size:.8rem;text-transform:uppercase}td{padding:10px 14px;border:1px solid #e5e0d8;color:#444;vertical-align:top}.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:.75rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase}.badge-get{background:#e8f4e8;color:#2d6a2d}.badge-post{background:#fdf3e3;color:#7a4f00}.badge-put{background:#e8eef8;color:#2d4a8a}.badge-patch{background:#f0e8f8;color:#5a2d8a}.badge-delete{background:#fde8e8;color:#8a2d2d}.tag{display:inline-block;background:#f4f3f0;border:1px solid #e5e0d8;border-radius:3px;padding:1px 7px;font-size:.78rem;color:#666;margin:2px}.info-box{background:#f0f4fa;border-left:3px solid #4a6fa5;padding:14px 18px;border-radius:0 4px 4px 0;margin:16px 0;font-size:.88rem}.warn-box{background:#fdf8f0;border-left:3px solid #c87941;padding:14px 18px;border-radius:0 4px 4px 0;margin:16px 0;font-size:.88rem}footer{text-align:center;padding:40px 0;color:#999;font-size:.82rem;border-top:1px solid #e5e0d8;margin-top:24px}</style></head><body>
+<div class="wrap"><header><div class="wrap"><div class="logo">Technical Documentation</div><h1>SENA Smart Garden</h1><p>Dokumentasi Teknis Sistem Laravel 11 — Platform IoT Pemantauan Taman Cerdas</p></div></header><nav><h2>Daftar Isi</h2><ol><li><a href="#s1">Gambaran Umum Sistem</a></li><li><a href="#s2">Arsitektur Aplikasi</a></li><li><a href="#s3">Struktur Direktori</a></li><li><a href="#s4">Database dan Skema</a></li><li><a href="#s5">Model Eloquent</a></li><li><a href="#s6">Routing</a></li><li><a href="#s7">Controller</a></li><li><a href="#s8">API Endpoint</a></li><li><a href="#s9">Protokol Komunikasi</a></li><li><a href="#s10">Autentikasi dan Keamanan</a></li><li><a href="#s11">Konfigurasi dan Deployment</a></li></ol></nav>
+<section id="s1"><h2>1. Gambaran Umum Sistem</h2><p>SENA (Smart Environment and Nature Automation) merupakan platform berbasis web yang dibangun menggunakan framework Laravel 11 untuk keperluan pemantauan dan pengendalian perangkat IoT taman cerdas secara daring. Sistem menerima data telemetri dari perangkat ESP32 di lapangan, menyimpannya ke dalam basis data, dan menampilkan visualisasi real-time kepada pengguna melalui antarmuka dashboard.</p><p>Pengendalian aktuator (pompa air) dilakukan melalui dua mekanisme: keputusan otomatis berbasis Fuzzy Logic Mamdani yang berjalan langsung di perangkat ESP32, serta perintah manual dari pengguna yang dikirimkan melalui protokol MQTT.</p><h3>Tumpukan Teknologi</h3><table><thead><tr><th>Layer</th><th>Teknologi</th><th>Versi</th></tr></thead><tbody><tr><td>Backend Framework</td><td>Laravel</td><td>11.x</td></tr><tr><td>Bahasa Pemrograman</td><td>PHP</td><td>^8.2</td></tr><tr><td>Basis Data</td><td>SQLite</td><td>3.x</td></tr><tr><td>Autentikasi Web</td><td>Laravel Breeze</td><td>2.3</td></tr><tr><td>Autentikasi API</td><td>Laravel Sanctum</td><td>4.x</td></tr><tr><td>MQTT Client</td><td>php-mqtt/client</td><td>2.3</td></tr><tr><td>Frontend</td><td>Alpine.js + Chart.js + Tailwind CSS</td><td>—</td></tr><tr><td>Build Tool</td><td>Vite</td><td>—</td></tr><tr><td>Mikrokontroler</td><td>ESP32 (Arduino Framework)</td><td>—</td></tr></tbody></table></section>
+<section id="s2"><h2>2. Arsitektur Aplikasi</h2><p>Sistem SENA mengadopsi pola arsitektur berlapis (layered architecture) mengikuti konvensi Laravel MVC, dengan tambahan lapisan API khusus untuk komunikasi dengan perangkat IoT.</p><h3>Diagram Arsitektur Tingkat Tinggi</h3><pre>+---------------------+        +----------------------+        +------------------+
+|    EDGE LAYER       |        |   APPLICATION LAYER  |        |   DATA LAYER     |
+|                     |        |                      |        |                  |
+|  ESP32 Node         |        |  Laravel 11          |        |  SQLite Database |
+|  - DHT22            | HTTPS  |  - REST API          |        |  - users         |
+|  - LDR          ----+-------&gt;|  - Web Dashboard     +-------&gt;|  - devices       |
+|  - Soil Sensor      | POST   |  - MQTT Publisher    |        |  - device_logs   |
+|  - pH Sensor        |        |                      |        |  - fuzzy_configs |
+|  - Relay Pump       |&lt;-------+  - Auth (Breeze)     |        |                  |
+|  - LCD 16x2         | MQTT   |  - Blade Views       |        |  Storage (Disk)  |
++---------------------+        +----------------------+        |  - avatars/      |
+                                         ^                      |  - devices/      |
+                                         | HTTP Polling         +------------------+
+                               +----------------------+
+                               |   PRESENTATION LAYER |
+                               |  Browser Dashboard   |
+                               |  - Chart.js          |
+                               |  - Alpine.js         |
+                               +----------------------+</pre><h3>Pola Komunikasi</h3><table><thead><tr><th>Jalur</th><th>Protokol</th><th>Arah</th><th>Keterangan</th></tr></thead><tbody><tr><td>ESP32 ke Server</td><td>HTTPS POST</td><td>Satu arah (Push)</td><td>Pengiriman data telemetri sensor setiap 10 detik</td></tr><tr><td>Server ke ESP32</td><td>MQTT Publish</td><td>Satu arah (Push)</td><td>Perintah kontrol pompa dan pembaruan konfigurasi fuzzy</td></tr><tr><td>Browser ke Server</td><td>HTTP GET/POST</td><td>Dua arah</td><td>Manajemen device, visualisasi, dan kontrol manual</td></tr><tr><td>Browser ke Server (polling)</td><td>HTTP GET JSON</td><td>Dua arah</td><td>Pembaruan data real-time setiap 5 detik</td></tr></tbody></table></section>
+<section id="s3"><h2>3. Struktur Direktori</h2><pre>sena/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Api/
+│   │   │   │   └── TelemetryController.php    # Ingest data IoT
+│   │   │   ├── DashboardController.php         # Halaman dan polling dashboard
+│   │   │   ├── DeviceController.php            # CRUD device + toggle pompa
+│   │   │   ├── FuzzyConfigController.php       # Konfigurasi fuzzy logic
+│   │   │   ├── ProfileController.php           # Profil dan avatar pengguna
+│   │   │   └── SystemLogController.php         # Riwayat log + ekspor CSV
+│   │   ├── Requests/
+│   │   │   └── ProfileUpdateRequest.php
+│   │   └── Resources/
+│   │       └── DeviceLogResource.php           # Transformasi JSON telemetri
+│   └── Models/
+│       ├── User.php
+│       ├── Device.php
+│       ├── DeviceLog.php
+│       └── FuzzyConfig.php
+├── database/
+│   └── migrations/                             # 12 file migrasi bertahap
+├── resources/
+│   └── views/
+│       ├── dashboard.blade.php                 # Halaman utama + chart
+│       ├── welcome.blade.php                   # Halaman landing
+│       ├── devices/                            # CRUD device views
+│       ├── logs/                               # Tabel riwayat sensor
+│       └── profile/                            # Pengaturan akun
+├── routes/
+│   ├── web.php                                 # Rute berbasis sesi
+│   └── api.php                                 # Rute API publik
+└── config/
+    └── mqtt.php                                # Konfigurasi broker MQTT</pre></section>
+<section id="s4"><h2>4. Database dan Skema</h2><h3>Entity Relationship Diagram</h3><pre>users
+  id (PK)
+  name
+  email (UNIQUE)
+  email_verified_at
+  password
+  avatar
+  remember_token
+  created_at / updated_at
+    |
+    | 1 : N (hasMany)
+    v
+devices
+  id (PK)
+  user_id (FK -&gt; users)
+  device_name
+  device_code (UNIQUE, UUID)
+  location
+  status (boolean)
+  pump_state (boolean)
+  control_mode
+  rssi
+  last_seen_at
+  photo
+  created_at / updated_at
+    |           \
+    | 1 : N      \ 1 : 1 (hasOne)
+    v              v
+device_logs     fuzzy_configs
+  id (PK)         id (PK)
+  device_id (FK)  device_id (FK)
+  ph              moisture_kering_max (def: 40)
+  soil_moisture   moisture_normal_min (def: 30)
+  light_intensity moisture_normal_max (def: 70)
+  temperature     moisture_basah_min  (def: 60)
+  humidity        ph_asam_max         (def: 6.5)
+  created_at      ph_netral_min       (def: 6.0)
+  updated_at      ph_netral_max       (def: 7.5)
+                  ph_basa_min         (def: 7.0)
+                  created_at / updated_at</pre><h3>Skema Tabel: users</h3><table><thead><tr><th>Kolom</th><th>Tipe</th><th>Constraint</th><th>Keterangan</th></tr></thead><tbody><tr><td>id</td><td>BIGINT UNSIGNED</td><td>PK, Auto Increment</td><td>Identifikasi unik pengguna</td></tr><tr><td>name</td><td>VARCHAR(255)</td><td>NOT NULL</td><td>Nama lengkap</td></tr><tr><td>email</td><td>VARCHAR(255)</td><td>UNIQUE, NOT NULL</td><td>Digunakan sebagai kredensial login</td></tr><tr><td>email_verified_at</td><td>TIMESTAMP</td><td>NULL</td><td>Penanda verifikasi email</td></tr><tr><td>password</td><td>VARCHAR(255)</td><td>NOT NULL</td><td>Hash Bcrypt</td></tr><tr><td>avatar</td><td>VARCHAR(255)</td><td>NULL</td><td>Path relatif ke storage/avatars/</td></tr></tbody></table><h3>Skema Tabel: devices</h3><table><thead><tr><th>Kolom</th><th>Tipe</th><th>Constraint</th><th>Keterangan</th></tr></thead><tbody><tr><td>device_code</td><td>VARCHAR(255)</td><td>UNIQUE</td><td>UUID otomatis saat pendaftaran; digunakan sebagai kunci autentikasi API</td></tr><tr><td>status</td><td>BOOLEAN</td><td>DEFAULT true</td><td>Device aktif atau dinonaktifkan</td></tr><tr><td>pump_state</td><td>BOOLEAN</td><td>DEFAULT false</td><td>Status relay pompa air</td></tr><tr><td>last_seen_at</td><td>TIMESTAMP</td><td>NULL</td><td>Heartbeat terakhir; device dianggap online jika delta kurang dari 5 menit</td></tr><tr><td>rssi</td><td>INT</td><td>NULL</td><td>Kekuatan sinyal WiFi perangkat</td></tr></tbody></table><h3>Skema Tabel: device_logs</h3><table><thead><tr><th>Kolom</th><th>Tipe</th><th>Rentang Nilai</th></tr></thead><tbody><tr><td>ph</td><td>DECIMAL(5,2)</td><td>0 — 14</td></tr><tr><td>soil_moisture</td><td>DECIMAL(5,2)</td><td>0 — 100 (%)</td></tr><tr><td>light_intensity</td><td>DECIMAL(8,2)</td><td>0 — 10000+ (lux)</td></tr><tr><td>temperature</td><td>DECIMAL(5,2)</td><td>-40 — 85 (Celsius)</td></tr><tr><td>humidity</td><td>DECIMAL(5,2)</td><td>0 — 100 (%)</td></tr></tbody></table><h3>Timeline Migrasi</h3><table><thead><tr><th>No</th><th>Nama Migrasi</th><th>Keterangan</th></tr></thead><tbody><tr><td>1</td><td>0001_01_01_000000_create_users_table</td><td>Tabel users, sessions, password_reset_tokens</td></tr><tr><td>2</td><td>0001_01_01_000001_create_cache_table</td><td>Penyimpanan cache berbasis database</td></tr><tr><td>3</td><td>0001_01_01_000002_create_jobs_table</td><td>Queue jobs</td></tr><tr><td>4</td><td>2026_03_05_095653_create_devices_table</td><td>Tabel perangkat IoT dasar</td></tr><tr><td>5</td><td>2026_03_05_095654_create_device_logs_table</td><td>Tabel log data sensor (dengan index created_at)</td></tr><tr><td>6</td><td>2026_03_05_100913_create_personal_access_tokens</td><td>Tabel token Sanctum</td></tr><tr><td>7</td><td>2026_03_05_103737_add_pump_state_to_devices</td><td>Penambahan kolom pump_state</td></tr><tr><td>8</td><td>2026_04_18_174609_create_fuzzy_configs_table</td><td>Tabel konfigurasi parameter Fuzzy Logic</td></tr><tr><td>9</td><td>2026_04_19_053409_add_last_seen_at_to_devices</td><td>Kolom heartbeat perangkat</td></tr><tr><td>10</td><td>2026_04_19_121631_add_control_mode_and_rssi</td><td>Kolom mode kontrol dan sinyal WiFi</td></tr><tr><td>11</td><td>2026_05_12_150918_add_photo_to_devices</td><td>Kolom foto perangkat</td></tr><tr><td>12</td><td>2026_05_12_151155_add_avatar_to_users</td><td>Kolom avatar profil pengguna</td></tr></tbody></table></section>
+<section id="s5"><h2>5. Model Eloquent</h2><h3>User</h3><p>Namespace: <code>App\Models\User</code></p><table><thead><tr><th>Anggota</th><th>Nilai / Keterangan</th></tr></thead><tbody><tr><td>$fillable</td><td>name, email, password, avatar</td></tr><tr><td>$hidden</td><td>password, remember_token</td></tr><tr><td>casts()</td><td>email_verified_at: datetime; password: hashed</td></tr><tr><td>getAvatarUrlAttribute()</td><td>Mengembalikan URL storage jika ada, fallback ke ui-avatars.com</td></tr><tr><td>devices()</td><td>HasMany(Device::class)</td></tr></tbody></table><h3>Device</h3><p>Namespace: <code>App\Models\Device</code></p><table><thead><tr><th>Anggota</th><th>Nilai / Keterangan</th></tr></thead><tbody><tr><td>$fillable</td><td>user_id, device_name, device_code, location, status, pump_state, photo</td></tr><tr><td>$casts</td><td>status: boolean; pump_state: boolean; last_seen_at: datetime</td></tr><tr><td>getPhotoUrlAttribute()</td><td>URL foto device; fallback ke ui-avatars.com dengan tema hijau</td></tr><tr><td>getIsOnlineAttribute()</td><td>true jika last_seen_at dalam 5 menit terakhir</td></tr><tr><td>user()</td><td>BelongsTo(User::class)</td></tr><tr><td>logs()</td><td>HasMany(DeviceLog::class)</td></tr><tr><td>fuzzyConfig()</td><td>HasOne(FuzzyConfig::class)</td></tr></tbody></table><h3>DeviceLog</h3><p>Namespace: <code>App\Models\DeviceLog</code></p><table><thead><tr><th>Anggota</th><th>Nilai / Keterangan</th></tr></thead><tbody><tr><td>$fillable</td><td>device_id, ph, soil_moisture, light_intensity, temperature, humidity</td></tr><tr><td>device()</td><td>BelongsTo(Device::class)</td></tr></tbody></table><h3>FuzzyConfig</h3><p>Namespace: <code>App\Models\FuzzyConfig</code></p><table><thead><tr><th>Anggota</th><th>Nilai / Keterangan</th></tr></thead><tbody><tr><td>$fillable</td><td>device_id, moisture_kering_max, moisture_normal_min, moisture_normal_max, moisture_basah_min, ph_asam_max, ph_netral_min, ph_netral_max, ph_basa_min</td></tr><tr><td>device()</td><td>BelongsTo(Device::class)</td></tr></tbody></table><div class="info-box">Semua model menerapkan trait <code>HasFactory</code>. Relasi dirancang untuk mendukung penghapusan bertingkat (cascade on delete) sehingga penghapusan user otomatis menghapus seluruh device dan log yang terkait.</div></section>
+<section id="s6"><h2>6. Routing</h2><h3>Rute Web (routes/web.php)</h3><table><thead><tr><th>Method</th><th>URI</th><th>Controller@Method</th><th>Middleware</th><th>Name</th></tr></thead><tbody><tr><td><span class="badge badge-get">GET</span></td><td>/</td><td>Closure (redirect)</td><td>—</td><td>—</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/dashboard</td><td>DashboardController@index</td><td>auth, verified</td><td>dashboard</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/dashboard/data</td><td>DashboardController@data</td><td>auth, verified</td><td>dashboard.data</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/profile</td><td>ProfileController@edit</td><td>auth</td><td>profile.edit</td></tr><tr><td><span class="badge badge-patch">PATCH</span></td><td>/profile</td><td>ProfileController@update</td><td>auth</td><td>profile.update</td></tr><tr><td><span class="badge badge-delete">DELETE</span></td><td>/profile</td><td>ProfileController@destroy</td><td>auth</td><td>profile.destroy</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/devices</td><td>DeviceController@index</td><td>auth</td><td>devices.index</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/devices/create</td><td>DeviceController@create</td><td>auth</td><td>devices.create</td></tr><tr><td><span class="badge badge-post">POST</span></td><td>/devices</td><td>DeviceController@store</td><td>auth</td><td>devices.store</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/devices/{device}/edit</td><td>DeviceController@edit</td><td>auth</td><td>devices.edit</td></tr><tr><td><span class="badge badge-put">PUT</span></td><td>/devices/{device}</td><td>DeviceController@update</td><td>auth</td><td>devices.update</td></tr><tr><td><span class="badge badge-delete">DELETE</span></td><td>/devices/{device}</td><td>DeviceController@destroy</td><td>auth</td><td>devices.destroy</td></tr><tr><td><span class="badge badge-post">POST</span></td><td>/devices/{device}/toggle-pump</td><td>DeviceController@togglePump</td><td>auth</td><td>devices.toggle_pump</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/devices/{device}/fuzzy</td><td>FuzzyConfigController@edit</td><td>auth</td><td>devices.fuzzy</td></tr><tr><td><span class="badge badge-put">PUT</span></td><td>/devices/{device}/fuzzy</td><td>FuzzyConfigController@update</td><td>auth</td><td>devices.fuzzy.update</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/logs</td><td>SystemLogController@index</td><td>auth</td><td>logs.index</td></tr><tr><td><span class="badge badge-get">GET</span></td><td>/logs/export</td><td>SystemLogController@export</td><td>auth</td><td>logs.export</td></tr></tbody></table><h3>Rute API (routes/api.php)</h3><table><thead><tr><th>Method</th><th>URI</th><th>Controller@Method</th><th>Middleware</th></tr></thead><tbody><tr><td><span class="badge badge-get">GET</span></td><td>/api/user</td><td>Closure</td><td>auth:sanctum</td></tr><tr><td><span class="badge badge-post">POST</span></td><td>/api/v1/telemetry</td><td>Api\TelemetryController@store</td><td>Tidak ada (custom auth via X-Device-Code)</td></tr></tbody></table><div class="info-box">Rute root (<code>/</code>) melakukan redirect kondisional: pengguna yang telah terautentikasi diarahkan ke <code>/dashboard</code>, sementara pengguna yang belum masuk diarahkan ke <code>/login</code>.</div></section>
+<section id="s7"><h2>7. Controller</h2><h3>DashboardController</h3><p>Namespace: <code>App\Http\Controllers\DashboardController</code></p><h4>index(Request $request)</h4><p>Memuat halaman dashboard utama. Mengambil seluruh perangkat milik pengguna yang sedang masuk beserta relasinya, menentukan perangkat aktif berdasarkan query parameter <code>device_id</code>, kemudian mengambil 24 log terbaru untuk digunakan sebagai data grafik. Mengembalikan view <code>dashboard</code> dengan variabel <code>$devices</code>, <code>$activeDevice</code>, <code>$recentLogs</code>, dan <code>$latestLog</code>.</p><h4>data(Request $request)</h4><p>Endpoint JSON yang dipanggil secara periodik oleh JavaScript di sisi klien setiap 5 detik. Mengembalikan data pembacaan sensor terbaru beserta data historis untuk pembaruan grafik tanpa memuat ulang halaman.</p><pre>Response:
+{
+  "success": true,
+  "device_id": 3,
+  "device_status": true,
+  "latest": {
+    "ph": 6.82, "soil_moisture": 45.5,
+    "light_intensity": 320.0, "temperature": 28.5,
+    "humidity": 75.2, "time_ago": "2 minutes ago",
+    "timestamp": "14:28"
+  },
+  "chart": {
+    "labels": ["14:05", "14:10", ...],
+    "temperature": [...], "humidity": [...],
+    "soil_moisture": [...], "ph": [...],
+    "light_intensity": [...]
+  }
+}</pre><h3>DeviceController</h3><p>Namespace: <code>App\Http\Controllers\DeviceController</code></p><p>Menangani seluruh siklus CRUD perangkat IoT. Setiap operasi yang bersifat modifikasi (edit, update, destroy, togglePump) memvalidasi kepemilikan perangkat dengan membandingkan <code>device->user_id</code> terhadap ID pengguna yang sedang aktif. Pelanggaran menghasilkan respons HTTP 403.</p><h4>store(Request $request)</h4><p>Membuat entitas device baru. UUID dihasilkan secara otomatis menggunakan <code>Str::uuid()</code> sebagai nilai <code>device_code</code>. Foto perangkat opsional disimpan ke disk <code>public</code> dalam direktori <code>devices/</code>.</p><h4>togglePump(Device $device, Request $request)</h4><p>Mengubah status relay pompa. Setelah pembaruan basis data, controller menerbitkan pesan ke broker MQTT pada topik <code>sena/rx/{device_code}</code>. Kegagalan koneksi MQTT dicatat ke log namun tidak menggagalkan respons HTTP — pembaruan basis data tetap berlaku.</p><pre>MQTT Payload:
+{ "action": "toggle_pump", "pump_state": 1 }</pre><h3>FuzzyConfigController</h3><p>Namespace: <code>App\Http\Controllers\FuzzyConfigController</code></p><p>Mengelola parameter Fuzzy Logic per perangkat. Saat entitas konfigurasi belum ada, metode <code>edit()</code> membuatnya secara otomatis menggunakan nilai default melalui <code>firstOrCreate()</code>. Setelah pembaruan tersimpan, konfigurasi baru dikirimkan ke perangkat ESP32 melalui MQTT.</p><pre>MQTT Payload:
+{
+  "action": "update_fuzzy",
+  "moisture_kering_max": 40.0,
+  "moisture_normal_min": 30.0,
+  "moisture_normal_max": 70.0,
+  "moisture_basah_min":  60.0,
+  "ph_asam_max": 6.5, "ph_netral_min": 6.0,
+  "ph_netral_max": 7.5, "ph_basa_min": 7.0
+}</pre><h3>SystemLogController</h3><p>Namespace: <code>App\Http\Controllers\SystemLogController</code></p><p>Menampilkan riwayat data sensor dari seluruh perangkat milik pengguna, diurutkan berdasarkan waktu terbaru dengan paginasi 20 baris per halaman. Mendukung filter berdasarkan perangkat melalui parameter <code>device_id</code>.</p><p>Metode <code>export()</code> mengalirkan data sebagai file CSV yang dapat dibuka dengan Microsoft Excel, dengan kolom: Timestamp, Device Name, Temperature, Humidity, Soil Moisture, Light Intensity, dan pH.</p><h3>ProfileController</h3><p>Namespace: <code>App\Http\Controllers\ProfileController</code></p><p>Menangani pembaruan data profil pengguna termasuk unggah dan penghapusan foto avatar. Saat email diubah, nilai <code>email_verified_at</code> direset ke null. Penghapusan akun melalui metode <code>destroy()</code> akan menghapus file avatar dari storage sebelum memusnahkan data pengguna.</p><h3>Api\TelemetryController</h3><p>Namespace: <code>App\Http\Controllers\Api\TelemetryController</code></p><p>Titik masuk utama bagi perangkat IoT untuk mengirimkan data sensor. Autentikasi dilakukan menggunakan kode perangkat unik (UUID) yang dikirimkan melalui header HTTP <code>X-Device-Code</code>. Perangkat yang tidak aktif (<code>status = false</code>) ditolak dengan respons HTTP 403.</p><p>Setiap permintaan yang berhasil akan menyimpan log sensor baru, memperbarui <code>last_seen_at</code> sebagai sinyal heartbeat, dan mengembalikan konfigurasi Fuzzy Logic terkini beserta status perintah pompa dari server.</p></section>
+<section id="s8"><h2>8. API Endpoint</h2><h3>POST /api/v1/telemetry</h3><p>Endpoint ini digunakan oleh perangkat ESP32 untuk mengirimkan data telemetri sensor ke server secara berkala.</p><h4>Autentikasi</h4><pre>Header:
+  X-Device-Code: {uuid-device}
+  Content-Type: application/json
+  Accept: application/json</pre><h4>Request Body</h4><pre>{
+  "ph":              6.82,
+  "soil_moisture":   45.5,
+  "light_intensity": 320.0,
+  "temperature":     28.5,
+  "humidity":        75.2
+}</pre><h4>Aturan Validasi</h4><table><thead><tr><th>Field</th><th>Aturan</th></tr></thead><tbody><tr><td>ph</td><td>nullable, numeric, between:0,14</td></tr><tr><td>soil_moisture</td><td>nullable, numeric, between:0,100</td></tr><tr><td>light_intensity</td><td>nullable, numeric</td></tr><tr><td>temperature</td><td>nullable, numeric</td></tr><tr><td>humidity</td><td>nullable, numeric, between:0,100</td></tr></tbody></table><h4>Response 201 — Berhasil</h4><pre>{
+  "status":  "success",
+  "message": "Telemetry data saved correctly",
+  "data": {
+    "id": 42, "device_id": 3,
+    "ph": 6.82, "soil_moisture": 45.5,
+    "light_intensity": 320.0, "temperature": 28.5,
+    "humidity": 75.2,
+    "created_at": "2026-05-20T07:30:00+07:00",
+    "updated_at": "2026-05-20T07:30:00+07:00"
+  },
+  "device_controls": {
+    "pump_state": false
+  },
+  "fuzzy_config": {
+    "moisture_kering_max": 40.0,
+    "moisture_normal_min": 30.0,
+    "moisture_normal_max": 70.0,
+    "moisture_basah_min":  60.0,
+    "ph_asam_max":    6.5,
+    "ph_netral_min":  6.0,
+    "ph_netral_max":  7.5,
+    "ph_basa_min":    7.0
+  }
+}</pre><h4>Respons Error</h4><table><thead><tr><th>HTTP Status</th><th>Kondisi</th></tr></thead><tbody><tr><td>401</td><td>Header X-Device-Code tidak disertakan</td></tr><tr><td>403</td><td>Device code tidak ditemukan di basis data, atau device berstatus tidak aktif</td></tr><tr><td>422</td><td>Kegagalan validasi payload sensor</td></tr><tr><td>500</td><td>Kesalahan server internal; pesan dicatat ke storage/logs/laravel.log</td></tr></tbody></table><h3>GET /dashboard/data</h3><p>Diakses oleh skrip JavaScript di halaman dashboard setiap 5 detik. Memerlukan sesi web yang aktif (autentikasi berbasis cookie).</p><h4>Query Parameter</h4><table><thead><tr><th>Parameter</th><th>Wajib</th><th>Keterangan</th></tr></thead><tbody><tr><td>device_id</td><td>Tidak</td><td>ID device yang dipilih; jika tidak disertakan, menggunakan device pertama milik pengguna</td></tr></tbody></table><h3>POST /devices/{device}/toggle-pump</h3><h4>Request Body</h4><pre>{ "pump_state": true }</pre><h4>Response 200</h4><pre>{ "success": true, "pump_state": true }</pre><div class="info-box">Seluruh transformasi data respons pada endpoint <code>/api/v1/telemetry</code> menggunakan <code>App\Http\Resources\DeviceLogResource</code> yang memformat tanggal ke ISO 8601.</div></section>
+<section id="s9"><h2>9. Protokol Komunikasi</h2><h3>HTTPS — Telemetri ESP32 ke Server</h3><p>Perangkat ESP32 mengirimkan data sensor menggunakan HTTP POST dengan enkripsi TLS. Autentikasi dilakukan dengan menyertakan UUID perangkat pada header kustom <code>X-Device-Code</code>, bukan menggunakan token Bearer standar, sehingga tidak memerlukan proses login.</p><table><thead><tr><th>Parameter</th><th>Nilai</th></tr></thead><tbody><tr><td>Protocol</td><td>HTTPS (TLS)</td></tr><tr><td>Method</td><td>POST</td></tr><tr><td>Endpoint</td><td>/api/v1/telemetry</td></tr><tr><td>Auth Mechanism</td><td>Header X-Device-Code (UUID)</td></tr><tr><td>Content-Type</td><td>application/json</td></tr><tr><td>Interval</td><td>10 detik (dapat dikonfigurasi di firmware)</td></tr><tr><td>Timeout</td><td>8 detik</td></tr></tbody></table><h3>MQTT — Server ke ESP32 (Kontrol)</h3><p>Untuk kendali real-time, server menerbitkan pesan ke broker MQTT eksternal. Perangkat ESP32 berlangganan topik yang sesuai dengan kode perangkatnya dan merespons perintah yang diterima.</p><table><thead><tr><th>Parameter</th><th>Nilai Default</th></tr></thead><tbody><tr><td>Broker</td><td>broker.hivemq.com (dapat dikonfigurasi)</td></tr><tr><td>Port</td><td>1883 (TCP) / 8883 (TLS)</td></tr><tr><td>Keep Alive</td><td>60 detik</td></tr><tr><td>QoS Level</td><td>0 (At most once)</td></tr></tbody></table><h4>Struktur Topik</h4><table><thead><tr><th>Topik</th><th>Arah</th><th>Keterangan</th></tr></thead><tbody><tr><td><code>sena/rx/{device_code}</code></td><td>Server → ESP32</td><td>Perintah dan pembaruan konfigurasi dari server ke perangkat</td></tr><tr><td><code>sena/tx/{device_code}</code></td><td>ESP32 → Server</td><td>Dicadangkan untuk penggunaan masa depan</td></tr></tbody></table><h3>Diagram Alur Telemetri Lengkap</h3><pre>ESP32                    Laravel API              Database           Browser
+  |                          |                       |                  |
+  | [setiap 10 detik]        |                       |                  |
+  |-- Baca sensor            |                       |                  |
+  |-- Jalankan Fuzzy Logic   |                       |                  |
+  |-- Kontrol pompa lokal    |                       |                  |
+  |                          |                       |                  |
+  |-- POST /api/v1/telemetry -&gt;                       |                  |
+  |   X-Device-Code: {uuid} |                       |                  |
+  |   {sensor data JSON}    |                       |                  |
+  |                          |-- Cari device -------&gt;|                  |
+  |                          |-- Buat DeviceLog ----&gt;|                  |
+  |                          |-- Update heartbeat --&gt;|                  |
+  |                          |-- Ambil FuzzyConfig --&gt;|                  |
+  |&lt;-- 201 Response ---------+                       |                  |
+  |   {device_controls,     |                       |                  |
+  |    fuzzy_config}        |                       |                  |
+  |-- Update param fuzzy     |                       |                  |
+  |-- Terapkan perintah pompa|                       |                  |
+  |                          |                       |                  |
+  |                          |                       | [setiap 5 detik] |
+  |                          |                       |&lt;-- GET /dashboard/data
+  |                          |                       |-- Query 24 log --&gt;|
+  |                          |                       |-- Return JSON ---&gt;|
+  |                          |                       |   Update chart    |</pre><h3>Diagram Alur Kontrol Pompa Manual</h3><pre>Browser                  Laravel Web              MQTT Broker        ESP32
+  |                          |                       |                  |
+  |-- POST /toggle-pump ----&gt;|                       |                  |
+  |   { pump_state: true }  |                       |                  |
+  |                          |-- Update DB ----------&gt;|                  |
+  |                          |-- MQTT Publish -------&gt;|                  |
+  |                          |   topic: sena/rx/{code}|-- Subscribe --&gt;  |
+  |                          |   { action: toggle,   |   Execute pump   |
+  |                          |     pump_state: 1 }   |                  |
+  |&lt;-- JSON {success:true} --|                       |                  |</pre></section>
+<section id="s10"><h2>10. Autentikasi dan Keamanan</h2><h3>Autentikasi Web (Laravel Breeze)</h3><p>Antarmuka web menggunakan autentikasi berbasis sesi yang disediakan oleh Laravel Breeze. Pengguna mendaftarkan akun dengan nama, alamat email, dan kata sandi. Kata sandi disimpan menggunakan algoritma Bcrypt melalui cast <code>hashed</code> pada model User.</p><table><thead><tr><th>Aspek</th><th>Implementasi</th></tr></thead><tbody><tr><td>Login</td><td>Email dan kata sandi; session disimpan di database</td></tr><tr><td>Perlindungan CSRF</td><td>Token CSRF otomatis pada seluruh form berbasis POST/PATCH/DELETE</td></tr><tr><td>Middleware auth</td><td>Melindungi seluruh rute dashboard, device, log, dan profil</td></tr><tr><td>Middleware verified</td><td>Diterapkan pada /dashboard — memastikan email telah diverifikasi</td></tr><tr><td>Hashing</td><td>Bcrypt dengan 12 rounds (dikonfigurasi via BCRYPT_ROUNDS)</td></tr></tbody></table><h3>Autentikasi API IoT (X-Device-Code)</h3><p>Perangkat IoT tidak menggunakan mekanisme OAuth atau Bearer token. Identitas perangkat diverifikasi menggunakan UUID unik yang disebut <code>device_code</code>, yang dihasilkan server saat perangkat didaftarkan dan harus disertakan pada setiap permintaan API melalui header HTTP kustom.</p><pre>Header: X-Device-Code: 550e8400-e29b-41d4-a716-446655440000</pre><p>Server melakukan dua tahap verifikasi: pertama memastikan UUID terdaftar di basis data, kemudian memastikan perangkat berstatus aktif (<code>status = true</code>). Perangkat yang dinonaktifkan melalui dashboard akan langsung ditolak pada permintaan berikutnya.</p><h3>Kontrol Kepemilikan Resource</h3><p>Seluruh operasi pada entitas <code>Device</code> yang bersifat modifikasi memvalidasi kepemilikan secara eksplisit sebelum proses dijalankan. Pengguna yang mencoba mengakses atau memodifikasi perangkat milik pengguna lain akan menerima respons HTTP 403 Forbidden.</p><pre>// Contoh validasi kepemilikan di DeviceController
+if ($device->user_id !== $request->user()->id) {
+    abort(403);
+}</pre><h3>Penanganan File Upload</h3><p>Berkas yang diunggah (foto perangkat dan avatar pengguna) divalidasi secara ketat sebelum disimpan. Hanya format JPEG, PNG, JPG, dan WebP yang diizinkan dengan ukuran maksimum 2 MB per file.</p><table><thead><tr><th>Jenis File</th><th>Direktori Penyimpanan</th><th>Validasi</th></tr></thead><tbody><tr><td>Avatar pengguna</td><td>storage/app/public/avatars/</td><td>image, mimes:jpeg,png,jpg,webp, max:2048</td></tr><tr><td>Foto perangkat</td><td>storage/app/public/devices/</td><td>image, mimes:jpeg,png,jpg,webp, max:2048</td></tr></tbody></table><h3>Daftar Periksa Keamanan</h3><table><thead><tr><th>Item</th><th>Status</th><th>Catatan</th></tr></thead><tbody><tr><td>HTTPS pada komunikasi IoT</td><td>Tersedia</td><td>Firmware menggunakan WiFiClientSecure; setInsecure() hanya untuk pengembangan</td></tr><tr><td>Autentikasi perangkat IoT</td><td>Tersedia</td><td>UUID unik per perangkat sebagai kunci API</td></tr><tr><td>Perlindungan CSRF</td><td>Tersedia</td><td>Token CSRF pada seluruh form web</td></tr><tr><td>Validasi kepemilikan resource</td><td>Tersedia</td><td>Pemeriksaan user_id pada setiap operasi CRUD</td></tr><tr><td>Hashing kata sandi</td><td>Tersedia</td><td>Bcrypt via Laravel hashed cast</td></tr><tr><td>Validasi unggah file</td><td>Tersedia</td><td>Pembatasan tipe MIME dan ukuran file</td></tr><tr><td>SQL Injection</td><td>Terlindungi</td><td>Eloquent ORM dengan prepared statement</td></tr><tr><td>Autentikasi MQTT</td><td>Opsional</td><td>Dianjurkan dikonfigurasi untuk lingkungan produksi</td></tr><tr><td>SSL ESP32 produksi</td><td>Perlu dikonfigurasi</td><td>Ganti setInsecure() dengan setCACert(root_ca)</td></tr></tbody></table></section>
+<section id="s11"><h2>11. Konfigurasi dan Deployment</h2><h3>Persyaratan Server</h3><table><thead><tr><th>Komponen</th><th>Versi Minimum</th></tr></thead><tbody><tr><td>PHP</td><td>8.2</td></tr><tr><td>Ekstensi PHP</td><td>pdo, pdo_sqlite, mbstring, openssl, tokenizer, xml, ctype, fileinfo</td></tr><tr><td>Composer</td><td>2.x</td></tr><tr><td>Node.js</td><td>18+ (untuk kompilasi asset)</td></tr><tr><td>Web Server</td><td>Apache (tersedia .htaccess) atau Nginx</td></tr><tr><td>Storage</td><td>Hak tulis pada direktori storage/ dan bootstrap/cache/</td></tr></tbody></table><h3>Variabel Lingkungan (.env)</h3><pre>APP_NAME="SENA Smart Garden"
+APP_ENV=production
+APP_KEY=base64:...
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+APP_TIMEZONE=Asia/Jakarta
+
+# Database (default SQLite)
+DB_CONNECTION=sqlite
+
+# Atau MySQL
+# DB_CONNECTION=mysql
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=sena_db
+# DB_USERNAME=root
+# DB_PASSWORD=secret
+
+FILESYSTEM_DISK=public
+SESSION_DRIVER=database
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+
+# MQTT Broker
+MQTT_HOST=broker.hivemq.com
+MQTT_PORT=1883
+MQTT_CLIENT_ID=sena-server
+MQTT_USERNAME=
+MQTT_PASSWORD=</pre><h3>Langkah Instalasi</h3><pre># 1. Pasang dependensi PHP
+composer install --optimize-autoloader --no-dev
+
+# 2. Siapkan environment
+cp .env.example .env
+php artisan key:generate
+
+# 3. Jalankan migrasi
+php artisan migrate --force
+
+# 4. Buat symbolic link storage
+php artisan storage:link
+
+# 5. Kompilasi asset frontend
+npm install
+npm run build
+
+# 6. Optimalkan cache (produksi)
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 7. Atur izin direktori
+chmod -R 775 storage bootstrap/cache</pre><h3>Konfigurasi MQTT (config/mqtt.php)</h3><pre>&lt;?php
+return [
+    "host"      =&gt; env("MQTT_HOST", "broker.hivemq.com"),
+    "port"      =&gt; env("MQTT_PORT", 1883),
+    "client_id" =&gt; env("MQTT_CLIENT_ID", "sena-server"),
+    "username"  =&gt; env("MQTT_USERNAME", ""),
+    "password"  =&gt; env("MQTT_PASSWORD", ""),
+];</pre><h3>Penanganan Masalah Umum</h3><table><thead><tr><th>Gejala</th><th>Kemungkinan Penyebab</th><th>Solusi</th></tr></thead><tbody><tr><td>ESP32 mendapat HTTP 401</td><td>DEVICE_CODE di firmware tidak sesuai</td><td>Salin UUID dari halaman /devices dan tempelkan ke konstanta DEVICE_CODE di firmware</td></tr><tr><td>ESP32 mendapat HTTP 403</td><td>Device dinonaktifkan</td><td>Aktifkan kembali perangkat melalui halaman /devices dengan mengaktifkan status</td></tr><tr><td>Dashboard tidak diperbarui</td><td>last_seen_at lebih dari 5 menit</td><td>Periksa koneksi WiFi perangkat dan pastikan telemetri diterima server</td></tr><tr><td>Perintah pompa tidak sampai</td><td>Koneksi MQTT gagal</td><td>Periksa storage/logs/laravel.log; DB tetap diperbarui meskipun MQTT gagal</td></tr><tr><td>Foto tidak muncul</td><td>Symlink storage belum dibuat</td><td>Jalankan php artisan storage:link dan pastikan direktori storage/ dapat ditulis</td></tr></tbody></table><div class="warn-box">Pada lingkungan produksi, pastikan nilai <code>APP_DEBUG</code> diset ke <code>false</code> untuk mencegah kebocoran informasi sistem melalui pesan error yang ditampilkan ke publik.</div></section>
+<footer><p>SENA Smart Garden &mdash; Technical Documentation &mdash; Laravel 11 &mdash; Dihasilkan 2026</p></footer></div></body></html>
