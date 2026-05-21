@@ -50,10 +50,14 @@
 const char* WIFI_SSID       = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD   = "YOUR_WIFI_PASSWORD";
 const char* SERVER_URL      = "https://your-domain.com/api/v1/telemetry";
+const char* COMMAND_URL     = "https://your-domain.com/api/v1/device-commands";
 const char* DEVICE_CODE     = "YOUR_DEVICE_UUID_FROM_DASHBOARD";
 
 // Interval pengiriman telemetri (ms)
 const unsigned long TELEMETRY_INTERVAL = 10000; // 10 detik
+
+// Interval cek command dari server (ms)
+const unsigned long COMMAND_CHECK_INTERVAL = 5000; // 5 detik
 
 // ─── PIN DEFINITIONS ─────────────────────────────────────────
 #define DHTPIN        4     // DHT22 data pin
@@ -106,9 +110,16 @@ WiFiClientSecure wifiClient;
 
 // ─── STATE VARIABLES ─────────────────────────────────────────
 unsigned long lastTelemetryTime = 0;
-bool serverPumpOverride         = false; // true = ikuti perintah server
-bool serverPumpState            = false; // nilai pump dari server
-bool localPumpState             = false; // hasil fuzzy logic lokal
+unsigned long lastCommandCheckTime = 0;
+
+// Pump Control State Machine
+// Mode: 0 = Fuzzy Logic, 1 = Server Override (Manual)
+uint8_t pumpControlMode = 0;
+bool fuzzyPumpDecision = false;      // Output dari fuzzy logic
+bool serverPumpCommand = false;      // Perintah terbaru dari server
+bool actualPumpState = false;        // State sebenarnya di relay
+unsigned long serverCommandTimestamp = 0;
+const unsigned long OVERRIDE_TIMEOUT = 300000; // 5 menit, kembali ke fuzzy
 
 // ─── GLOBAL SENSOR VALUES (untuk LCD) ───────────────────────
 float g_temp = 0, g_humid = 0, g_soil = 0, g_ph = 0, g_lux = 0;
@@ -127,6 +138,7 @@ float fuzzyMembership_PHBasa(float ph);
 float runFuzzyLogic(float soilMoisture, float phValue);
 void  controlPump(bool state);
 void  sendTelemetry();
+void  checkServerCommands();
 void  reconnectWiFi();
 
 // ============================================================
@@ -195,17 +207,38 @@ void loop() {
     // Update tampilan LCD (non-blocking, ganti layar tiap 3 detik)
     updateLCD();
 
+    // Check & apply override timeout
+    if (pumpControlMode == 1) { // Server Override active
+        if (millis() - serverCommandTimestamp > OVERRIDE_TIMEOUT) {
+            Serial.println("[PUMP] Server override timeout! Kembali ke Fuzzy Logic mode");
+            pumpControlMode = 0;
+        }
+    }
+
+    // Check server commands sesuai interval (non-blocking HTTP GET)
+    if (millis() - lastCommandCheckTime >= COMMAND_CHECK_INTERVAL) {
+        lastCommandCheckTime = millis();
+        if (WiFi.status() == WL_CONNECTED) {
+            checkServerCommands();
+        }
+    }
+
     // Kirim telemetri sesuai interval
     if (millis() - lastTelemetryTime >= TELEMETRY_INTERVAL) {
         lastTelemetryTime = millis();
         if (WiFi.status() == WL_CONNECTED) {
             sendTelemetry();
         } else {
-            // Tetap jalankan fuzzy lokal meski WiFi mati
+            // Tetap jalankan fuzzy lokal meski WiFi mati (pompa tetap bisa bekerja)
             float soil = readSoilMoisture();
             float ph   = readPH();
             float out  = runFuzzyLogic(soil, ph);
-            if (!serverPumpOverride) controlPump(out > 0.5f);
+            fuzzyPumpDecision = (out > 0.5f);
+            
+            // Jika no server override, gunakan fuzzy
+            if (pumpControlMode == 0) {
+                controlPump(fuzzyPumpDecision);
+            }
         }
     }
 }
@@ -395,8 +428,10 @@ float runFuzzyLogic(float soilMoisture, float phValue) {
 // ============================================================
 void controlPump(bool state) {
     digitalWrite(PUMP_PIN, state ? HIGH : LOW);
-    localPumpState = state;
-    Serial.printf("[PUMP] → %s\n", state ? "ON ✓" : "OFF ✗");
+    actualPumpState = state;
+    Serial.printf("[PUMP] State → %s (Mode: %s)\n", 
+                  state ? "ON ✓" : "OFF ✗",
+                  pumpControlMode == 0 ? "FUZZY" : "MANUAL OVERRIDE");
 }
 
 // ============================================================
@@ -431,15 +466,22 @@ void sendTelemetry() {
     Serial.printf("[Soil]   Kelembaban Tanah: %.2f%%\n", soilMoist);
     Serial.printf("[pH]     Nilai pH: %.2f\n", phVal);
 
-    // ── 2. JALANKAN FUZZY LOGIC ──────────────────────────────
+    // ── 2. JALANKAN FUZZY LOGIC & TENTUKAN KONTROL ─────────
     float fuzzyOutput = runFuzzyLogic(soilMoist, phVal);
-    bool  fuzzyDecision = (fuzzyOutput > 0.5f);
-
-    // ── 3. KONTROL POMPA (sebelum request – keputusan lokal) ─
-    // Jika server tidak memberikan override, gunakan fuzzy
-    if (!serverPumpOverride) {
-        controlPump(fuzzyDecision);
+    fuzzyPumpDecision = (fuzzyOutput > 0.5f);
+    
+    // Tentukan state pump berdasarkan mode
+    bool desiredPumpState;
+    if (pumpControlMode == 0) {
+        // Fuzzy Logic Mode
+        desiredPumpState = fuzzyPumpDecision;
+    } else {
+        // Server Override Mode
+        desiredPumpState = serverPumpCommand;
     }
+
+    // ── 3. KONTROL POMPA SESUAI KEPUTUSAN ──────────────────
+    controlPump(desiredPumpState);
 
     // ── 4. BANGUN JSON PAYLOAD ───────────────────────────────
     StaticJsonDocument<256> doc;
@@ -464,7 +506,7 @@ void sendTelemetry() {
     https.addHeader("Content-Type", "application/json");
     https.addHeader("Accept", "application/json");
     https.addHeader("X-Device-Code", DEVICE_CODE);
-    https.setTimeout(8000); // 8 detik timeout
+    https.setTimeout(8000);
 
     int httpCode = https.POST(jsonPayload);
 
@@ -472,12 +514,12 @@ void sendTelemetry() {
         String response = https.getString();
         Serial.printf("[HTTP]  Response Code: %d\n", httpCode);
 
-        // ── 6. PARSE RESPONSE & TERIMA PERINTAH SERVER ───────
+        // ── 6. PARSE RESPONSE & UPDATE KONFIGURASI UNTUK CYCLE BERIKUTNYA ───────
         StaticJsonDocument<512> resDoc;
         DeserializationError err = deserializeJson(resDoc, response);
 
         if (!err) {
-            // Update fuzzy config jika server mengirimnya
+            // Update fuzzy config jika server mengirimnya (untuk cycle berikutnya)
             if (resDoc.containsKey("fuzzy_config")) {
                 JsonObject cfg = resDoc["fuzzy_config"];
                 if (cfg.containsKey("moisture_kering_max")) fuzzy.moisture_kering_max = cfg["moisture_kering_max"];
@@ -492,19 +534,22 @@ void sendTelemetry() {
             }
 
             // Terima perintah pompa dari server (kontrol manual dashboard)
+            // NOTE: Ini adalah update untuk cycle berikutnya
             if (resDoc.containsKey("device_controls")) {
                 bool srvPump = resDoc["device_controls"]["pump_state"] | false;
-
-                if (srvPump != fuzzyDecision) {
-                    // Server mengoverride keputusan fuzzy (kontrol manual)
-                    serverPumpOverride = true;
-                    serverPumpState    = srvPump;
-                    controlPump(srvPump);
-                    Serial.printf("[SERVER] Override pompa dari dashboard: %s\n",
+                
+                // Cek apakah ada command override dari server
+                // Jika different dari fuzzy, berarti user memberikan override manual
+                if (srvPump != fuzzyPumpDecision) {
+                    pumpControlMode = 1; // Switch ke Server Override mode
+                    serverPumpCommand = srvPump;
+                    serverCommandTimestamp = millis();
+                    Serial.printf("[SERVER] Override pompa dari dashboard → %s (valid 5 menit)\n",
                                   srvPump ? "ON" : "OFF");
                 } else {
-                    // Server setuju dengan fuzzy, lepas override
-                    serverPumpOverride = false;
+                    // Server tidak override, kembali ke fuzzy mode
+                    pumpControlMode = 0;
+                    Serial.println("[SERVER] Sesuai dengan fuzzy decision, tetap mode FUZZY");
                 }
             }
         } else {
@@ -517,8 +562,10 @@ void sendTelemetry() {
 
     https.end();
 
-    Serial.printf("[STATUS] Pompa: %s | Fuzzy Score: %.3f\n",
-                  localPumpState ? "ON" : "OFF", fuzzyOutput);
+    Serial.printf("[STATUS] Pompa: %s | Mode: %s | Fuzzy Score: %.3f\n",
+                  actualPumpState ? "ON" : "OFF",
+                  pumpControlMode == 0 ? "FUZZY" : "OVERRIDE",
+                  fuzzyOutput);
     Serial.println("══════════════════════════════════════\n");
 }
 
@@ -588,15 +635,18 @@ void updateLCD() {
             lcd.print(g_lux, 0);
             lcd.print(" lux  ");
             lcd.setCursor(0, 1);
-            lcd.print("Pompa : ");
-            lcd.print(localPumpState ? "ON  " : "OFF ");
+            lcd.print("Pompa: ");
+            lcd.print(actualPumpState ? "ON " : "OFF");
+            lcd.print(" (");
+            lcd.print(pumpControlMode == 0 ? "F" : "M");
+            lcd.print(")  ");
             break;
         case 3: {
             lcd.setCursor(0, 0);
-            bool online = (WiFi.status() == WL_CONNECTED);
-            lcd.print(online ? "WiFi: OK        " : "WiFi: --        ");
+            bool wifiOk = (WiFi.status() == WL_CONNECTED);
+            lcd.print(wifiOk ? "WiFi: OK        " : "WiFi: --        ");
             lcd.setCursor(0, 1);
-            lcd.print(serverPumpOverride ? "Mode: MANUAL    " : "Mode: FUZZY     ");
+            lcd.print(pumpControlMode == 0 ? "Mode: FUZZY LOGIC " : "Mode: MANUAL OVR ");
             break;
         }
     }
@@ -616,4 +666,82 @@ void reconnectWiFi() {
         WiFi.disconnect();
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     }
+}
+
+// ============================================================
+//  CHECK SERVER COMMANDS (HTTP Polling)
+// ============================================================
+/**
+ * Polling endpoint untuk cek apakah ada command dari server.
+ * Endpoint: GET /api/v1/device-commands/{device_code}
+ * 
+ * Response:
+ * {
+ *   "has_command": true,
+ *   "command": {
+ *     "type": "pump_toggle",
+ *     "pump_state": true
+ *   }
+ * }
+ */
+void checkServerCommands() {
+    String commandCheckURL = String(COMMAND_URL) + "/" + DEVICE_CODE;
+    
+    HTTPClient https;
+    if (!https.begin(wifiClient, commandCheckURL)) {
+        Serial.println("[Command] Gagal buka koneksi");
+        return;
+    }
+
+    https.addHeader("Content-Type", "application/json");
+    https.addHeader("Accept", "application/json");
+    https.addHeader("X-Device-Code", DEVICE_CODE);
+    https.setTimeout(5000);
+
+    int httpCode = https.GET();
+
+    if (httpCode == 200) {
+        String response = https.getString();
+        Serial.printf("[Command] Response: %s\n", response.c_str());
+
+        StaticJsonDocument<256> doc;
+        DeserializationError err = deserializeJson(doc, response);
+
+        if (!err && doc["has_command"]) {
+            JsonObject cmd = doc["command"];
+            String cmdType = cmd["type"];
+
+            // ── Handle: Pump Toggle ──────────────────────────────
+            if (cmdType == "pump_toggle") {
+                bool newPumpState = cmd["pump_state"] | false;
+                
+                pumpControlMode = 1; // MANUAL OVERRIDE
+                serverPumpCommand = newPumpState;
+                serverCommandTimestamp = millis();
+                
+                controlPump(newPumpState);
+                
+                Serial.printf("[Command] Pompa override → %s (valid 5 menit)\n",
+                              newPumpState ? "ON" : "OFF");
+            }
+            // ── Handle: Fuzzy Config Update ──────────────────────
+            else if (cmdType == "update_fuzzy") {
+                JsonObject cfg = cmd["fuzzy_config"];
+                if (cfg.containsKey("moisture_kering_max")) fuzzy.moisture_kering_max = cfg["moisture_kering_max"];
+                if (cfg.containsKey("moisture_normal_min")) fuzzy.moisture_normal_min = cfg["moisture_normal_min"];
+                if (cfg.containsKey("moisture_normal_max")) fuzzy.moisture_normal_max = cfg["moisture_normal_max"];
+                if (cfg.containsKey("moisture_basah_min"))  fuzzy.moisture_basah_min  = cfg["moisture_basah_min"];
+                if (cfg.containsKey("ph_asam_max"))         fuzzy.ph_asam_max         = cfg["ph_asam_max"];
+                if (cfg.containsKey("ph_netral_min"))       fuzzy.ph_netral_min       = cfg["ph_netral_min"];
+                if (cfg.containsKey("ph_netral_max"))       fuzzy.ph_netral_max       = cfg["ph_netral_max"];
+                if (cfg.containsKey("ph_basa_min"))         fuzzy.ph_basa_min         = cfg["ph_basa_min"];
+                
+                Serial.println("[Command] Fuzzy Config diperbarui!");
+            }
+        }
+    } else {
+        Serial.printf("[Command] GET gagal, code: %d\n", httpCode);
+    }
+
+    https.end();
 }

@@ -51,22 +51,8 @@ class FuzzyConfigController extends Controller
             $validated
         );
 
-        try {
-            $mqtt = new \PhpMqtt\Client\MqttClient(config('mqtt.host'), config('mqtt.port'), config('mqtt.client_id'));
-            $connectionSettings = (new \PhpMqtt\Client\ConnectionSettings())->setKeepAliveInterval(60);
-            if (!empty(config('mqtt.username'))) {
-                $connectionSettings->setUsername(config('mqtt.username'))->setPassword(config('mqtt.password'));
-            }
-            $mqtt->connect($connectionSettings, true);
-            
-            $payload = array_merge(['action' => 'update_fuzzy'], $fuzzyConfig->toArray());
-            unset($payload['id'], $payload['device_id'], $payload['created_at'], $payload['updated_at']);
-
-            $mqtt->publish('sena/rx/' . $device->device_code, json_encode($payload), 0);
-            $mqtt->disconnect();
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('MQTT Publish Error: ' . $e->getMessage());
-        }
+        // Queue command untuk device ambil di next polling cycle
+        \App\Http\Controllers\Api\CommandController::queueFuzzyUpdate($device);
 
         return redirect()->route('devices.fuzzy', $device)->with('success', 'Fuzzy Logic Settings updated successfully!');
     }

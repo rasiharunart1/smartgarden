@@ -102,21 +102,8 @@ class DeviceController extends Controller
 
         $device->update(['pump_state' => $validated['pump_state']]);
 
-        try {
-            $mqtt = new \PhpMqtt\Client\MqttClient(config('mqtt.host'), config('mqtt.port'), config('mqtt.client_id'));
-            $connectionSettings = (new \PhpMqtt\Client\ConnectionSettings())->setKeepAliveInterval(60);
-            if (!empty(config('mqtt.username'))) {
-                $connectionSettings->setUsername(config('mqtt.username'))->setPassword(config('mqtt.password'));
-            }
-            $mqtt->connect($connectionSettings, true);
-            $mqtt->publish('sena/rx/' . $device->device_code, json_encode([
-                'action'     => 'toggle_pump',
-                'pump_state' => $device->pump_state ? 1 : 0
-            ]), 0);
-            $mqtt->disconnect();
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('MQTT Publish Error: ' . $e->getMessage());
-        }
+        // Queue command untuk device ambil di next polling cycle
+        \App\Http\Controllers\Api\CommandController::queuePumpToggle($device, $validated['pump_state']);
 
         return response()->json(['success' => true, 'pump_state' => $device->pump_state]);
     }
