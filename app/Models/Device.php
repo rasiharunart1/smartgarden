@@ -17,6 +17,7 @@ class Device extends Model
         'status',
         'pump_state',
         'photo',
+        'last_seen_at',
     ];
 
     /**
@@ -37,12 +38,26 @@ class Device extends Model
     ];
 
     /**
-     * Determine if the device is currently online based on heartbeat.
+     * Determine if the device is currently online.
+     * Online = menerima data telemetri dalam 2 menit terakhir.
+     * Cek last_seen_at (heartbeat), fallback ke log terakhir.
      */
-    public function getIsOnlineAttribute()
+    public function getIsOnlineAttribute(): bool
     {
-        // Online if we received telemetry within the last 5 minutes
-        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) <= 5;
+        $threshold = 2; // menit
+
+        // Prioritas 1: cek last_seen_at (di-update setiap telemetry masuk)
+        if ($this->last_seen_at) {
+            return $this->last_seen_at->diffInMinutes(now()) <= $threshold;
+        }
+
+        // Fallback: cek timestamp log terakhir
+        $latestLog = $this->logs()->latest()->first();
+        if ($latestLog) {
+            return $latestLog->created_at->diffInMinutes(now()) <= $threshold;
+        }
+
+        return false;
     }
 
     public function user()

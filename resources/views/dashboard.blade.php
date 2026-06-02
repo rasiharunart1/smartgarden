@@ -131,11 +131,11 @@
                 <div class="flex-1 text-center md:text-left">
                     <div class="flex flex-col md:flex-row md:items-center gap-3 mb-2">
                         <h1 class="text-3xl font-extrabold tracking-tight">{{ $activeDevice->device_name }}</h1>
-                        <span
-                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $activeDevice->is_online ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30' }} border w-fit mx-auto md:mx-0 shadow-sm">
-                            <span
+                        <span id="deviceStatusBadge"
+                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $activeDevice->is_online ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30' }} border w-fit mx-auto md:mx-0 shadow-sm transition-all duration-500">
+                            <span id="deviceStatusDot"
                                 class="w-2 h-2 {{ $activeDevice->is_online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400' }} rounded-full mr-2"></span>
-                            {{ $activeDevice->is_online ? 'Sistem Aktif' : 'Sistem Offline' }}
+                            <span id="deviceStatusText">{{ $activeDevice->is_online ? 'Sistem Aktif' : 'Sistem Offline' }}</span>
                         </span>
                     </div>
                     <p class="text-white/70 max-w-2xl leading-relaxed mt-3">
@@ -502,6 +502,24 @@
                 }
             }
 
+            // ─── Helper: Update device online/offline badge ─────────
+            function updateDeviceStatus(isOnline) {
+                const badge = document.getElementById('deviceStatusBadge');
+                const dot = document.getElementById('deviceStatusDot');
+                const text = document.getElementById('deviceStatusText');
+                if (!badge || !dot || !text) return;
+
+                if (isOnline) {
+                    badge.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border-emerald-500/30 border w-fit mx-auto md:mx-0 shadow-sm transition-all duration-500';
+                    dot.className = 'w-2 h-2 bg-emerald-400 animate-pulse rounded-full mr-2';
+                    text.textContent = 'Sistem Aktif';
+                } else {
+                    badge.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border-red-500/30 border w-fit mx-auto md:mx-0 shadow-sm transition-all duration-500';
+                    dot.className = 'w-2 h-2 bg-red-400 rounded-full mr-2';
+                    text.textContent = 'Sistem Offline';
+                }
+            }
+
             @if(count($recentLogs) > 0)
             // ─── Chart.js Initialization ────────────────────────────
             const ctx = document.getElementById('envChart').getContext('2d');
@@ -685,6 +703,14 @@
                     pollFailCount = 0;  // Reset on success
 
                     if (!data.success) return;
+
+                    // ── Update Device Online/Offline Status ──────────
+                    updateDeviceStatus(data.is_online);
+
+                    // ── Sync Pump Status dari Server ─────────────────
+                    if (data.pump_state !== undefined && data.pump_state !== isPumpOn) {
+                        setPumpUI(data.pump_state);
+                    }
 
                     // ── Update Sensor Values ────────────────────────
                     if (data.latest) {
