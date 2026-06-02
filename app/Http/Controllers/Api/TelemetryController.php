@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DeviceLogResource;
 use App\Models\Device;
+use App\Services\FuzzyLogicService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -12,6 +13,10 @@ class TelemetryController extends Controller
 {
     /**
      * Store telemetry data from IoT devices.
+     *
+     * Menerima data sensor dari ESP32, menyimpan ke database,
+     * menjalankan fuzzy logic evaluation (Soil Moisture + pH → Pump),
+     * dan mengembalikan konfigurasi fuzzy + hasil evaluasi.
      */
     public function store(Request $request)
     {
@@ -57,6 +62,25 @@ class TelemetryController extends Controller
                 ['device_id' => $device->id]
             );
 
+            // ── Evaluasi Fuzzy Logic (identik dengan ESP32) ──
+            // Input: Soil Moisture + pH → Output: Pump Decision
+            $fuzzyResult = null;
+            $soilMoisture = $validated['soil_moisture'] ?? null;
+            $ph = $validated['ph'] ?? null;
+
+            if ($soilMoisture !== null && $ph !== null) {
+                $fuzzyResult = FuzzyLogicService::evaluate(
+                    (float) $soilMoisture,
+                    (float) $ph,
+                    $fuzzyConfig
+                );
+
+                Log::info("Fuzzy evaluation for device {$device->id}: " .
+                    "soil={$soilMoisture}%, ph={$ph} → " .
+                    "output={$fuzzyResult['crisp_output']}, pump=" .
+                    ($fuzzyResult['pump_decision'] ? 'ON' : 'OFF'));
+            }
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Telemetry data saved correctly',
@@ -74,6 +98,7 @@ class TelemetryController extends Controller
                     'ph_netral_max'       => (float) $fuzzyConfig->ph_netral_max,
                     'ph_basa_min'         => (float) $fuzzyConfig->ph_basa_min,
                 ],
+                'fuzzy_evaluation' => $fuzzyResult,
             ], 201);
             
         } catch (\Exception $e) {

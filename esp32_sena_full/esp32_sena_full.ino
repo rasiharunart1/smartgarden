@@ -13,16 +13,16 @@
  *    - WiFi.h, HTTPClient.h, WiFiClientSecure.h  [Built-in ESP32]
  *
  *  Sensors:
- *    1. DHT22  – Suhu & Kelembaban Udara      (Pin digital 4)
- *    2. LDR    – Intensitas Cahaya (Analog)   (Pin ADC 32)
- *    3. Analog Soil Moisture Sensor           (Pin ADC 34)
- *    4. Analog pH Sensor (pH-4502C)           (Pin ADC 35)
+ *    1. DHT22  – Suhu & Kelembaban Udara      (Pin digital 18)
+ *    2. LDR    – Intensitas Cahaya (Analog)   (Pin ADC D32)
+ *    3. Soil Moisture Sensor (Analog)         (Pin ADC D35)
+ *    4. pH Tanah DMS (Depo Inovasi)           (ADC: D34, DMS: D13)
  *
  *  Display:
- *    - LCD 16x2 I2C (PCF8574)                 (SDA=21, SCL=22, Addr=0x27)
+ *    - LCD 20x4 I2C (PCF8574)                 (SDA=21, SCL=22, Addr=0x27)
  *
  *  Aktuator:
- *    - Relay Pompa Air                        (Pin digital 2)
+ *    - Relay Pompa Air                        (Pin digital 33)
  *
  *  Fitur:
  *    - Fuzzy Logic lokal (Mamdani) untuk kontrol pompa mandiri
@@ -54,32 +54,38 @@ const char* COMMAND_URL     = "https://your-domain.com/api/v1/device-commands";
 const char* DEVICE_CODE     = "YOUR_DEVICE_UUID_FROM_DASHBOARD";
 
 // Interval pengiriman telemetri (ms)
-const unsigned long TELEMETRY_INTERVAL = 10000; // 10 detik
+// NOTE: Pembacaan pH DMS memakan ~13 detik (blocking), jadi interval efektif ≈ 30 detik
+const unsigned long TELEMETRY_INTERVAL = 30000; // 30 detik (kompensasi waktu baca pH DMS)
 
 // Interval cek command dari server (ms)
 const unsigned long COMMAND_CHECK_INTERVAL = 5000; // 5 detik
 
 // ─── PIN DEFINITIONS ─────────────────────────────────────────
-#define DHTPIN        4     // DHT22 data pin
+#define DHTPIN        18     // DHT22 data pin
 #define DHTTYPE       DHT22
-#define LDR_PIN       32    // ADC1_CH4 – LDR analog
-#define SOIL_PIN      34    // ADC1_CH6 – Soil Moisture analog
-#define PH_PIN        35    // ADC1_CH7 – pH Sensor analog
-#define PUMP_PIN      2     // Relay pump (HIGH = ON)
+#define LDR_PIN       32    // ADC1_CH4 – LDR analog (D32)
+#define SOIL_PIN      35    // ADC1_CH7 – Soil Moisture analog (D35)
+#define PH_PIN        34    // ADC1_CH6 – pH Sensor ADC input (D34)
+#define DMS_PIN       13    // DMS control output pin (D13) – trigger pH sensor
+#define PUMP_PIN      33     // Relay pump (HIGH = ON)
 
-// LCD I2C
+// LCD I2C 20x4
 #define LCD_ADDR      0x27  // Coba 0x3F jika 0x27 tidak bekerja
-#define LCD_COLS      16
-#define LCD_ROWS      2
+#define LCD_COLS      20
+#define LCD_ROWS      4
 
 // ─── SENSOR CALIBRATION ──────────────────────────────────────
 // Soil Moisture
 #define SOIL_DRY_ADC    3200  // ADC di udara (kering)
 #define SOIL_WET_ADC     900  // ADC saat terendam air (basah)
 
-// pH Sensor (pH-4502C)
-#define PH_VOLTAGE_MID  2.50  // Tegangan saat pH = 7.0 (Volt)
-#define PH_SLOPE        0.18  // Slope volt per unit pH (tipikal 0.18)
+// pH Sensor DMS (Depo Inovasi)
+// Rumus regresi linier hasil kalibrasi: pH = (SLOPE * ADC) + INTERCEPT
+// !! Ganti rumus ini sesuai hasil kalibrasi sensor Anda !!
+#define PH_DMS_SLOPE      -0.0386f  // Slope regresi linier
+#define PH_DMS_INTERCEPT  16.030f   // Intercept regresi linier
+#define PH_DMS_WAIT_MS    10000     // Waktu tunggu DMS capture data (ms)
+#define PH_DMS_READY_MS   3000      // Waktu tunggu DMS ready setelah baca (ms)
 
 // LDR Cahaya: mapping ADC → lux perkiraan
 // ADC tinggi = gelap, ADC rendah = terang
@@ -123,6 +129,8 @@ const unsigned long OVERRIDE_TIMEOUT = 300000; // 5 menit, kembali ke fuzzy
 
 // ─── GLOBAL SENSOR VALUES (untuk LCD) ───────────────────────
 float g_temp = 0, g_humid = 0, g_soil = 0, g_ph = 0, g_lux = 0;
+float g_fuzzyOutput = 0;  // Fuzzy score terakhir (untuk LCD)
+bool  g_dhtOk = false;    // Flag apakah DHT22 berhasil dibaca
 
 // ─── FORWARD DECLARATIONS ────────────────────────────────────
 float readSoilMoisture();
@@ -156,20 +164,27 @@ void setup() {
     // Inisialisasi pin
     pinMode(PUMP_PIN, OUTPUT);
     pinMode(LDR_PIN, INPUT);
+    pinMode(PH_PIN, INPUT);       // pH ADC input (D34)
+    pinMode(DMS_PIN, OUTPUT);     // DMS trigger output (D25)
+    digitalWrite(DMS_PIN, HIGH);  // DMS non-aktif saat startup (HIGH = idle)
     controlPump(false); // Pompa mati saat startup
 
     // Inisialisasi sensor DHT22
     dht.begin();
 
-    // Inisialisasi I2C & LCD
+    // Inisialisasi I2C & LCD 20x4
     Wire.begin(); // SDA=21, SCL=22 (default ESP32)
     lcd.init();
     lcd.backlight();
     lcd.setCursor(0, 0);
-    lcd.print(" SENA  Garden  ");
+    lcd.print("====================");
     lcd.setCursor(0, 1);
-    lcd.print("  Initializing..");
-    Serial.println("[OK] LCD 16x2 I2C initialized");
+    lcd.print("  SENA Smart Garden ");
+    lcd.setCursor(0, 2);
+    lcd.print("   Initializing...  ");
+    lcd.setCursor(0, 3);
+    lcd.print("====================");
+    Serial.println("[OK] LCD 20x4 I2C initialized");
 
     // Koneksi WiFi
     WiFi.mode(WIFI_STA);
@@ -267,23 +282,57 @@ float readSoilMoisture() {
 }
 
 /**
- * Baca nilai pH dari sensor analog
- * Menggunakan rumus kalibrasi linier
+ * Baca nilai pH dari sensor DMS (Depo Inovasi).
+ *
+ * Prosedur pembacaan:
+ *   1. Set resolusi ADC ke 10-bit (0–1023) sesuai spesifikasi DMS
+ *   2. Aktifkan DMS (pin LOW)
+ *   3. Tunggu DMS capture data (10 detik)
+ *   4. Baca ADC
+ *   5. Hitung pH dengan rumus regresi linier hasil kalibrasi
+ *   6. Non-aktifkan DMS (pin HIGH)
+ *   7. Kembalikan resolusi ADC ke 12-bit (default ESP32)
+ *   8. Tunggu DMS ready (3 detik)
+ *
+ * PERHATIAN: Fungsi ini BLOCKING selama ~13 detik!
+ * Rumus kalibrasi: pH = -0.0386 * ADC + 16.030
  */
 float readPH() {
-    // Rata-rata 10 sample
-    long sum = 0;
-    for (int i = 0; i < 10; i++) {
-        sum += analogRead(PH_PIN);
-        delay(5);
+    // Step 1: Ubah resolusi ADC ke 10-bit (sesuai spesifikasi DMS)
+    analogReadResolution(10);
+
+    // Step 2: Aktifkan DMS (LOW = aktif)
+    digitalWrite(DMS_PIN, LOW);
+
+    // Step 3: Tunggu DMS capture data
+    Serial.println("[pH DMS] Mengaktifkan sensor, menunggu capture...");
+    delay(PH_DMS_WAIT_MS);
+
+    // Step 4: Baca ADC (10-bit: 0–1023)
+    int rawADC = analogRead(PH_PIN);
+
+    // Step 5: Hitung pH dengan rumus regresi linier hasil kalibrasi
+    // Rumus: pH = -0.0386 * ADC + 16.030
+    float phValue = (PH_DMS_SLOPE * (float)rawADC) + PH_DMS_INTERCEPT;
+
+    // Step 6: Non-aktifkan DMS (HIGH = idle)
+    digitalWrite(DMS_PIN, HIGH);
+
+    // Step 7: Kembalikan resolusi ADC ke 12-bit (default ESP32)
+    analogReadResolution(12);
+
+    // Step 8: Tunggu DMS ready untuk pembacaan berikutnya
+    delay(PH_DMS_READY_MS);
+
+    // Validasi: nilai < 0 berarti sensor tidak stabil
+    if (phValue < 0) {
+        Serial.printf("[pH DMS] Sensor tidak stabil! ADC: %d → pH: %.2f (set -1)\n", rawADC, phValue);
+        phValue = -1.0f;
+    } else {
+        phValue = constrain(phValue, 0.0f, 14.0f);
+        Serial.printf("[pH DMS] ADC(10bit): %d → pH: %.2f\n", rawADC, phValue);
     }
-    int rawADC = sum / 10;
 
-    float voltage = rawADC * (3.3f / 4095.0f);
-
-    // pH = 7 - ((Vmid - V) / slope)
-    float phValue = 7.0f - ((PH_VOLTAGE_MID - voltage) / PH_SLOPE);
-    phValue = constrain(phValue, 0.0f, 14.0f);
     return phValue;
 }
 
@@ -446,10 +495,12 @@ void sendTelemetry() {
     float tempC    = dht.readTemperature();
     float humidAir = dht.readHumidity();
 
-    if (isnan(tempC) || isnan(humidAir)) {
-        Serial.println("[ERROR] Gagal membaca DHT22!");
-        tempC    = -99.0f;
-        humidAir = -99.0f;
+    // Cek apakah DHT22 berhasil dibaca
+    g_dhtOk = !(isnan(tempC) || isnan(humidAir));
+    if (!g_dhtOk) {
+        Serial.println("[WARN] Gagal membaca DHT22! Data suhu/kelembaban tidak dikirim.");
+        tempC    = 0.0f;  // Default untuk LCD (bukan -99)
+        humidAir = 0.0f;
     }
 
     float lux       = readLDR();
@@ -461,14 +512,30 @@ void sendTelemetry() {
     g_soil = soilMoist; g_ph = phVal; g_lux = lux;
 
     // Log ke Serial
-    Serial.printf("[DHT22]  Suhu: %.2f°C | Kelembaban Udara: %.2f%%\n", tempC, humidAir);
-    Serial.printf("[LDR]    Cahaya: %.2f lux\n", lux);
-    Serial.printf("[Soil]   Kelembaban Tanah: %.2f%%\n", soilMoist);
-    Serial.printf("[pH]     Nilai pH: %.2f\n", phVal);
+    if (g_dhtOk) {
+        Serial.printf("[DHT22]  Suhu: %.1f°C | Kelembaban Udara: %.1f%%\n", tempC, humidAir);
+    } else {
+        Serial.println("[DHT22]  Suhu: -- | Kelembaban Udara: -- (sensor error)");
+    }
+    Serial.printf("[LDR]    Cahaya: %.0f lux\n", lux);
+    Serial.printf("[Soil]   Kelembaban Tanah: %.1f%%\n", soilMoist);
+    if (phVal >= 0) {
+        Serial.printf("[pH]     Nilai pH: %.2f\n", phVal);
+    } else {
+        Serial.println("[pH]     Nilai pH: -- (sensor tidak stabil)");
+    }
 
     // ── 2. JALANKAN FUZZY LOGIC & TENTUKAN KONTROL ─────────
-    float fuzzyOutput = runFuzzyLogic(soilMoist, phVal);
-    fuzzyPumpDecision = (fuzzyOutput > 0.5f);
+    // Fuzzy logic butuh pH valid (>= 0). Jika pH invalid, skip fuzzy.
+    float fuzzyOutput = 0.0f;
+    if (phVal >= 0) {
+        fuzzyOutput = runFuzzyLogic(soilMoist, phVal);
+        fuzzyPumpDecision = (fuzzyOutput > 0.5f);
+    } else {
+        Serial.println("[Fuzzy] SKIP - pH tidak valid, pompa tetap pada state terakhir");
+        // Pertahankan fuzzyPumpDecision sebelumnya
+    }
+    g_fuzzyOutput = fuzzyOutput;  // Simpan untuk LCD
     
     // Tentukan state pump berdasarkan mode
     bool desiredPumpState;
@@ -484,12 +551,28 @@ void sendTelemetry() {
     controlPump(desiredPumpState);
 
     // ── 4. BANGUN JSON PAYLOAD ───────────────────────────────
+    // PENTING: Hanya kirim data sensor yang valid!
+    // Jika DHT22 gagal atau pH tidak stabil, kirim null agar server tidak reject (422)
     StaticJsonDocument<256> doc;
-    doc["ph"]              = round(phVal * 100.0f) / 100.0f;
+
+    // pH: kirim null jika sensor tidak stabil (-1)
+    if (phVal >= 0) {
+        doc["ph"] = round(phVal * 100.0f) / 100.0f;
+    } else {
+        doc["ph"] = (char*)nullptr;  // null di JSON
+    }
+
     doc["soil_moisture"]   = round(soilMoist * 10.0f) / 10.0f;
     doc["light_intensity"] = round(lux * 10.0f) / 10.0f;
-    doc["temperature"]     = round(tempC * 10.0f) / 10.0f;
-    doc["humidity"]        = round(humidAir * 10.0f) / 10.0f;
+
+    // DHT22: kirim null jika sensor gagal
+    if (g_dhtOk) {
+        doc["temperature"] = round(tempC * 10.0f) / 10.0f;
+        doc["humidity"]    = round(humidAir * 10.0f) / 10.0f;
+    } else {
+        doc["temperature"] = (char*)nullptr;  // null di JSON
+        doc["humidity"]    = (char*)nullptr;   // null di JSON
+    }
 
     String jsonPayload;
     serializeJson(doc, jsonPayload);
@@ -591,66 +674,108 @@ float readLDR() {
 }
 
 // ============================================================
-//  LCD 16x2 I2C – UPDATE DISPLAY (Non-Blocking)
+//  LCD 20x4 I2C – UPDATE DISPLAY (Non-Blocking)
 // ============================================================
 /**
- * Menampilkan data sensor bergantian setiap 3 detik:
- *   Layar 0: Suhu & Kelembaban Udara
- *   Layar 1: Kelembaban Tanah & pH
- *   Layar 2: Cahaya & Status Pompa
- *   Layar 3: Status WiFi & Fuzzy
+ * Menampilkan data sensor pada LCD 20x4.
+ * Dengan 4 baris, semua data bisa ditampilkan dengan lebih sedikit rotasi.
+ *
+ *   Layar 0 (Sensor Data):
+ *     Baris 0: Suhu & Kelembaban Udara
+ *     Baris 1: Kelembaban Tanah & pH
+ *     Baris 2: Cahaya (lux)
+ *     Baris 3: Pompa & Mode
+ *
+ *   Layar 1 (Status):
+ *     Baris 0: WiFi status
+ *     Baris 1: Fuzzy Score & keputusan
+ *     Baris 2: Mode kontrol
+ *     Baris 3: SENA Smart Garden
  */
 void updateLCD() {
     static unsigned long lastSwitch = 0;
     static uint8_t screen = 0;
-    if (millis() - lastSwitch < 3000) return;
+    if (millis() - lastSwitch < 4000) return;  // Ganti layar tiap 4 detik
     lastSwitch = millis();
 
     lcd.clear();
     switch (screen) {
-        case 0:
+        case 0: {
+            // ── Layar 0: Semua data sensor ──────────────
+            // Baris 0: Suhu & Kelembaban Udara
             lcd.setCursor(0, 0);
-            lcd.print("Suhu: ");
-            lcd.print(g_temp, 1);
-            lcd.print((char)223); // simbol derajat
-            lcd.print("C      ");
+            if (g_dhtOk) {
+                lcd.print("T:");
+                lcd.print(g_temp, 1);
+                lcd.print((char)223);
+                lcd.print("C");
+                lcd.print(" H:");
+                lcd.print(g_humid, 1);
+                lcd.print("%");
+            } else {
+                lcd.print("T:--.- H:--.-%");
+            }
+
+            // Baris 1: Kelembaban Tanah & pH
             lcd.setCursor(0, 1);
-            lcd.print("Hum: ");
-            lcd.print(g_humid, 1);
-            lcd.print("%       ");
-            break;
-        case 1:
-            lcd.setCursor(0, 0);
-            lcd.print("Tanah: ");
+            lcd.print("Soil:");
             lcd.print(g_soil, 1);
-            lcd.print("%      ");
-            lcd.setCursor(0, 1);
-            lcd.print("pH   : ");
-            lcd.print(g_ph, 2);
-            lcd.print("       ");
-            break;
-        case 2:
-            lcd.setCursor(0, 0);
+            lcd.print("%");
+            lcd.print(" pH:");
+            if (g_ph >= 0) {
+                lcd.print(g_ph, 2);
+            } else {
+                lcd.print("--");
+            }
+
+            // Baris 2: Cahaya
+            lcd.setCursor(0, 2);
             lcd.print("Cahaya: ");
             lcd.print(g_lux, 0);
-            lcd.print(" lux  ");
-            lcd.setCursor(0, 1);
-            lcd.print("Pompa: ");
+            lcd.print(" lux");
+
+            // Baris 3: Pompa & Mode
+            lcd.setCursor(0, 3);
+            lcd.print("Pompa:");
             lcd.print(actualPumpState ? "ON " : "OFF");
-            lcd.print(" (");
-            lcd.print(pumpControlMode == 0 ? "F" : "M");
-            lcd.print(")  ");
+            lcd.print(" ");
+            lcd.print(pumpControlMode == 0 ? "[FUZZY]" : "[MANUAL]");
             break;
-        case 3: {
+        }
+
+        case 1: {
+            // ── Layar 1: Status sistem ──────────────────
+            // Baris 0: WiFi status
             lcd.setCursor(0, 0);
             bool wifiOk = (WiFi.status() == WL_CONNECTED);
-            lcd.print(wifiOk ? "WiFi: OK        " : "WiFi: --        ");
+            if (wifiOk) {
+                lcd.print("WiFi: Connected");
+            } else {
+                lcd.print("WiFi: Disconnected");
+            }
+
+            // Baris 1: Fuzzy Score
             lcd.setCursor(0, 1);
-            lcd.print(pumpControlMode == 0 ? "Mode: FUZZY LOGIC " : "Mode: MANUAL OVR ");
+            lcd.print("Fuzzy: ");
+            lcd.print(g_fuzzyOutput, 3);
+            lcd.print(" -> ");
+            lcd.print(g_fuzzyOutput > 0.5f ? "ON" : "OFF");
+
+            // Baris 2: Mode & override info
+            lcd.setCursor(0, 2);
+            if (pumpControlMode == 0) {
+                lcd.print("Mode: FUZZY AUTO");
+            } else {
+                lcd.print("Mode: MANUAL OVR");
+            }
+
+            // Baris 3: Branding
+            lcd.setCursor(0, 3);
+            lcd.print("  SENA SmartGarden  ");
             break;
         }
     }
-    screen = (screen + 1) % 4;
+    screen = (screen + 1) % 2;  // Hanya 2 layar (cukup untuk 20x4)
 }
 
 // ============================================================

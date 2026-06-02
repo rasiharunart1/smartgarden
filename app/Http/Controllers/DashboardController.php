@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Services\FuzzyLogicService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -30,6 +31,7 @@ class DashboardController extends Controller
         // Get recent logs for the active device
         $recentLogs = [];
         $latestLog = null;
+        $fuzzyResult = null;
 
         if ($activeDevice) {
             $recentLogs = $activeDevice->logs()
@@ -40,9 +42,21 @@ class DashboardController extends Controller
                 ->values();
                 
             $latestLog = $recentLogs->last();
+
+            // Evaluasi fuzzy logic berdasarkan data sensor terbaru
+            if ($latestLog && $latestLog->soil_moisture !== null && $latestLog->ph !== null) {
+                $fuzzyConfig = $activeDevice->fuzzyConfig()->firstOrCreate(
+                    ['device_id' => $activeDevice->id]
+                );
+                $fuzzyResult = FuzzyLogicService::evaluate(
+                    (float) $latestLog->soil_moisture,
+                    (float) $latestLog->ph,
+                    $fuzzyConfig
+                );
+            }
         }
 
-        return view('dashboard', compact('devices', 'activeDevice', 'recentLogs', 'latestLog'));
+        return view('dashboard', compact('devices', 'activeDevice', 'recentLogs', 'latestLog', 'fuzzyResult'));
     }
 
     /**
@@ -81,6 +95,19 @@ class DashboardController extends Controller
             
         $latestLog = $recentLogs->last();
 
+        // Evaluasi fuzzy logic berdasarkan data sensor terbaru
+        $fuzzyResult = null;
+        if ($latestLog && $latestLog->soil_moisture !== null && $latestLog->ph !== null) {
+            $fuzzyConfig = $activeDevice->fuzzyConfig()->firstOrCreate(
+                ['device_id' => $activeDevice->id]
+            );
+            $fuzzyResult = FuzzyLogicService::evaluate(
+                (float) $latestLog->soil_moisture,
+                (float) $latestLog->ph,
+                $fuzzyConfig
+            );
+        }
+
         // Format data for response
         return response()->json([
             'success' => true,
@@ -102,7 +129,9 @@ class DashboardController extends Controller
                 'soil_moisture' => $recentLogs->pluck('soil_moisture'),
                 'ph' => $recentLogs->pluck('ph'),
                 'light_intensity' => $recentLogs->pluck('light_intensity'),
-            ]
+            ],
+            'fuzzy_evaluation' => $fuzzyResult,
         ]);
     }
 }
+

@@ -15,8 +15,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- MQTT.js for Realtime WebSockets -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -289,7 +287,7 @@
                 </div>
 
                 <!-- Panel Kontrol Pompa -->
-                <div class="space-y-6">
+                <div class="space-y-4">
                     <!-- Saklar Pompa -->
                     <div
                         class="glass rounded-3xl p-6 flex flex-col items-center justify-between h-[180px] hover:bg-white/5 transition-colors">
@@ -320,6 +318,26 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Fuzzy Logic Status Card -->
+                    <div id="fuzzyStatusCard" class="glass rounded-3xl p-5 transition-all duration-500">
+                        <h2 class="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-purple-400"></i> Fuzzy Logic
+                        </h2>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-white/50">Output</span>
+                                <span id="fuzzyOutputVal" class="text-sm font-bold text-purple-300">--</span>
+                            </div>
+                            <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                                <div id="fuzzyOutputBar" class="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-700" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-xs text-white/50">Rekomendasi</span>
+                                <span id="fuzzyPumpRec" class="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10">--</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -327,15 +345,27 @@
 
         <!-- Scripts for Icons and Chart -->
         <script>
-            // Update Waktu
+            // ══════════════════════════════════════════════════════════
+            //  SENA Dashboard — Realtime HTTP Polling Engine
+            // ══════════════════════════════════════════════════════════
+
+            // ─── Config ─────────────────────────────────────────────
+            const POLL_INTERVAL = 10000;  // Poll setiap 10 detik
+            const activeDeviceId = {{ $activeDevice ? $activeDevice->id : 'null' }};
+            const DASHBOARD_DATA_URL = '{{ route("dashboard.data") }}';
+
+            // ─── Clock Update ───────────────────────────────────────
             function updateTime() {
                 const now = new Date();
-                document.getElementById('last-update').innerHTML = '<i class="fa-solid fa-circle-dot fa-xs mr-1 text-emerald-400"></i> Live: ' + now.toLocaleTimeString('id-ID');
+                const el = document.getElementById('last-update');
+                if (el) {
+                    el.innerHTML = '<i class="fa-solid fa-circle-dot fa-xs mr-1 text-emerald-400 animate-pulse"></i> Live: ' + now.toLocaleTimeString('id-ID');
+                }
             }
             setInterval(updateTime, 1000);
             updateTime();
 
-            // Kontrol Pompa (Visual & Simulasi)
+            // ─── Pump Control ───────────────────────────────────────
             const pumpBtn = document.getElementById('pumpBtn');
             const pumpHandle = document.getElementById('pumpHandle');
             const pumpStatusLabel = document.getElementById('pumpStatusLabel');
@@ -344,91 +374,56 @@
             const pumpSpin = document.getElementById('pumpSpin');
             const pumpBgGlow = document.getElementById('pumpBgGlow');
 
-            // Initialize from database state
             let isPumpOn = {{ $activeDevice && $activeDevice->pump_state ? 'true' : 'false' }};
-            const activeDeviceId = {{ $activeDevice ? $activeDevice->id : 'null' }};
 
-            // Set Initial UI visually
-            if (isPumpOn) {
-                pumpBtn.classList.add('bg-emerald-500', 'border-emerald-400');
-                pumpBtn.classList.remove('bg-white/10', 'border-white/20');
-                pumpHandle.classList.add('translate-x-14');
-                let pIcon = pumpHandle.querySelector('svg') || pumpHandle.querySelector('i');
-                if (pIcon) pIcon.classList.replace('text-gray-400', 'text-emerald-500');
+            function setPumpUI(on) {
+                isPumpOn = on;
+                const iconHandle = pumpHandle.querySelector('i');
+                const iconSpin = pumpSpin.querySelector('i');
 
-                pumpStatusLabel.textContent = 'HIDUP';
-                pumpStatusLabel.classList.replace('text-white/40', 'text-emerald-300');
-                pumpStatusLabel.classList.replace('bg-black/30', 'bg-emerald-500/20');
-                pumpStatusLabel.classList.add('border', 'border-emerald-500/30');
-
-                pumpIndicatorBox.classList.add('pump-active', 'border-blue-500/30');
-                pumpBgGlow.classList.replace('bg-blue-500/0', 'bg-blue-500/10');
-
-                pumpVisual.classList.replace('bg-white/5', 'bg-blue-500/20');
-
-                pumpSpin.classList.add('animate-spin-slow', 'border-blue-400', 'opacity-80');
-                pumpSpin.classList.remove('opacity-30', 'border-white/10');
-                let sIcon = pumpSpin.querySelector('svg') || pumpSpin.querySelector('i');
-                if (sIcon) sIcon.classList.replace('text-white/20', 'text-blue-300');
-            }
-
-            pumpBtn.addEventListener('click', () => {
-                if (!activeDeviceId) return;
-
-                // Toggle optimistic UI
-                isPumpOn = !isPumpOn;
-
-                if (isPumpOn) {
-                    // UI Hidup
+                if (on) {
                     pumpBtn.classList.add('bg-emerald-500', 'border-emerald-400');
                     pumpBtn.classList.remove('bg-white/10', 'border-white/20');
-
                     pumpHandle.classList.add('translate-x-14');
-                    let pIcon = pumpHandle.querySelector('svg');
-                    if (pIcon) pIcon.classList.replace('text-gray-400', 'text-emerald-500');
+                    if (iconHandle) { iconHandle.classList.remove('text-gray-400'); iconHandle.classList.add('text-emerald-500'); }
 
                     pumpStatusLabel.textContent = 'HIDUP';
-                    pumpStatusLabel.classList.replace('text-white/40', 'text-emerald-300');
-                    pumpStatusLabel.classList.replace('bg-black/30', 'bg-emerald-500/20');
-                    pumpStatusLabel.classList.add('border', 'border-emerald-500/30');
+                    pumpStatusLabel.className = 'text-sm font-bold tracking-widest text-emerald-300 bg-emerald-500/20 px-4 py-1 rounded-full border border-emerald-500/30';
 
                     pumpIndicatorBox.classList.add('pump-active', 'border-blue-500/30');
-                    pumpBgGlow.classList.replace('bg-blue-500/0', 'bg-blue-500/10');
-
-                    pumpVisual.classList.replace('bg-white/5', 'bg-blue-500/20');
+                    pumpBgGlow.className = 'absolute inset-0 bg-blue-500/10 transition-colors duration-500';
+                    pumpVisual.classList.remove('bg-white/5'); pumpVisual.classList.add('bg-blue-500/20');
 
                     pumpSpin.classList.add('animate-spin-slow', 'border-blue-400', 'opacity-80');
                     pumpSpin.classList.remove('opacity-30', 'border-white/10');
-                    let sIcon = pumpSpin.querySelector('svg');
-                    if (sIcon) sIcon.classList.replace('text-white/20', 'text-blue-300');
-
-                    // console.log('Perintah kirim ke IoT: ON');
+                    if (iconSpin) { iconSpin.classList.remove('text-white/20'); iconSpin.classList.add('text-blue-300'); }
                 } else {
-                    // UI Mati
                     pumpBtn.classList.remove('bg-emerald-500', 'border-emerald-400');
                     pumpBtn.classList.add('bg-white/10', 'border-white/20');
-
                     pumpHandle.classList.remove('translate-x-14');
-                    let pIcon = pumpHandle.querySelector('svg');
-                    if (pIcon) pIcon.classList.replace('text-emerald-500', 'text-gray-400');
+                    if (iconHandle) { iconHandle.classList.remove('text-emerald-500'); iconHandle.classList.add('text-gray-400'); }
 
                     pumpStatusLabel.textContent = 'MATI';
-                    pumpStatusLabel.classList.replace('text-emerald-300', 'text-white/40');
-                    pumpStatusLabel.classList.replace('bg-emerald-500/20', 'bg-black/30');
-                    pumpStatusLabel.classList.remove('border', 'border-emerald-500/30');
+                    pumpStatusLabel.className = 'text-sm font-bold tracking-widest text-white/40 bg-black/30 px-4 py-1 rounded-full';
 
                     pumpIndicatorBox.classList.remove('pump-active', 'border-blue-500/30');
-                    pumpBgGlow.classList.replace('bg-blue-500/10', 'bg-blue-500/0');
-
-                    pumpVisual.classList.replace('bg-blue-500/20', 'bg-white/5');
+                    pumpBgGlow.className = 'absolute inset-0 bg-blue-500/0 transition-colors duration-500';
+                    pumpVisual.classList.remove('bg-blue-500/20'); pumpVisual.classList.add('bg-white/5');
 
                     pumpSpin.classList.remove('animate-spin-slow', 'border-blue-400', 'opacity-80');
                     pumpSpin.classList.add('opacity-30', 'border-white/10');
-                    let sIcon = pumpSpin.querySelector('svg');
-                    if (sIcon) sIcon.classList.replace('text-blue-300', 'text-white/20');
+                    if (iconSpin) { iconSpin.classList.remove('text-blue-300'); iconSpin.classList.add('text-white/20'); }
                 }
+            }
 
-                // Push change to DB
+            // Set initial pump UI from server state
+            setPumpUI(isPumpOn);
+
+            pumpBtn.addEventListener('click', () => {
+                if (!activeDeviceId) return;
+                isPumpOn = !isPumpOn;
+                setPumpUI(isPumpOn);
+
                 fetch(`/devices/${activeDeviceId}/toggle-pump`, {
                     method: 'POST',
                     headers: {
@@ -438,309 +433,310 @@
                     },
                     body: JSON.stringify({ pump_state: isPumpOn })
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.success) {
-                            console.error('Failed to change pump state', data);
-                            // Optional: Revert UI if needed here
-                        }
-                    })
-                    .catch(err => console.error('Network Error:', err));
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('Failed to change pump state', data);
+                        isPumpOn = !isPumpOn;
+                        setPumpUI(isPumpOn);
+                    }
+                })
+                .catch(err => {
+                    console.error('Network Error:', err);
+                    isPumpOn = !isPumpOn;
+                    setPumpUI(isPumpOn);
+                });
             });
 
+            // ─── Helper: Update progress ring ───────────────────────
+            function updateRing(id, value, maxVal) {
+                const ring = document.getElementById(id);
+                if (ring && value !== null && value !== undefined) {
+                    const circumference = 125.6;
+                    ring.style.strokeDashoffset = circumference - ((value / maxVal) * circumference);
+                }
+            }
+
+            // ─── Helper: Update sensor value with animation ─────────
+            function updateSensorValue(id, value, suffix) {
+                const el = document.getElementById(id);
+                if (el) {
+                    const newVal = (value !== null && value !== undefined) ? value : '--';
+                    if (el.innerText !== String(newVal)) {
+                        el.style.transition = 'opacity 0.3s';
+                        el.style.opacity = '0.3';
+                        setTimeout(() => {
+                            el.innerText = newVal;
+                            el.style.opacity = '1';
+                        }, 150);
+                    }
+                }
+            }
+
+            // ─── Helper: Update fuzzy status card ───────────────────
+            function updateFuzzyCard(fuzzyEval) {
+                const outputEl = document.getElementById('fuzzyOutputVal');
+                const barEl = document.getElementById('fuzzyOutputBar');
+                const recEl = document.getElementById('fuzzyPumpRec');
+
+                if (!fuzzyEval || fuzzyEval.crisp_output === undefined) {
+                    if (outputEl) outputEl.innerText = '--';
+                    if (barEl) barEl.style.width = '0%';
+                    if (recEl) { recEl.innerText = '--'; recEl.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-white/10'; }
+                    return;
+                }
+
+                const crisp = fuzzyEval.crisp_output;
+                const pumpOn = fuzzyEval.pump_decision;
+
+                if (outputEl) outputEl.innerText = crisp.toFixed(3);
+                if (barEl) barEl.style.width = (crisp * 100) + '%';
+                if (recEl) {
+                    if (pumpOn) {
+                        recEl.innerText = 'SIRAM';
+                        recEl.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                    } else {
+                        recEl.innerText = 'TIDAK';
+                        recEl.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30';
+                    }
+                }
+            }
+
             @if(count($recentLogs) > 0)
-                // Grafik Chart.js
-                const ctx = document.getElementById('envChart').getContext('2d');
+            // ─── Chart.js Initialization ────────────────────────────
+            const ctx = document.getElementById('envChart').getContext('2d');
 
-                // Gradient API
-                const gradientSuhu = ctx.createLinearGradient(0, 0, 0, 300);
-                gradientSuhu.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); // Emerald 500
-                gradientSuhu.addColorStop(1, 'rgba(16, 185, 129, 0)');
+            const gradientSuhu = ctx.createLinearGradient(0, 0, 0, 300);
+            gradientSuhu.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
+            gradientSuhu.addColorStop(1, 'rgba(16, 185, 129, 0)');
 
-                const gradientLembab = ctx.createLinearGradient(0, 0, 0, 300);
-                gradientLembab.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // Blue 500
-                gradientLembab.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            const gradientLembab = ctx.createLinearGradient(0, 0, 0, 300);
+            gradientLembab.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+            gradientLembab.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
-                // Data mapping from PHP
-                const chartLabels = {!! json_encode($recentLogs->pluck('created_at')->map(fn($date) => $date->format('H:i'))) !!};
-                const chartDataSuhu = {!! json_encode($recentLogs->pluck('temperature')) !!};
-                const chartDataLembab = {!! json_encode($recentLogs->pluck('humidity')) !!};
-                const chartDataSoil = {!! json_encode($recentLogs->pluck('soil_moisture')) !!};
-                const chartDataPh = {!! json_encode($recentLogs->pluck('ph')) !!};
-                const chartDataLight = {!! json_encode($recentLogs->pluck('light_intensity')) !!};
+            const chartLabels = {!! json_encode($recentLogs->pluck('created_at')->map(fn($date) => $date->format('H:i'))) !!};
+            const chartDataSuhu = {!! json_encode($recentLogs->pluck('temperature')) !!};
+            const chartDataLembab = {!! json_encode($recentLogs->pluck('humidity')) !!};
+            const chartDataSoil = {!! json_encode($recentLogs->pluck('soil_moisture')) !!};
+            const chartDataPh = {!! json_encode($recentLogs->pluck('ph')) !!};
+            const chartDataLight = {!! json_encode($recentLogs->pluck('light_intensity')) !!};
 
-                // Add glassmorphism feel to Chart tooltip
-                Chart.defaults.color = 'rgba(255, 255, 255, 0.7)';
-                Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+            Chart.defaults.color = 'rgba(255, 255, 255, 0.7)';
+            Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 
-                window.envChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: chartLabels,
-                        datasets: [
-                            {
-                                label: 'Suhu Udara (°C)',
-                                data: chartDataSuhu,
-                                borderColor: '#10b981', // Emerald 500
-                                borderWidth: 3,
-                                backgroundColor: gradientSuhu,
-                                fill: true,
-                                tension: 0.4,
-                                pointBackgroundColor: '#10b981',
-                                pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6
-                            },
-                            {
-                                label: 'Lembab Udara (%)',
-                                data: chartDataLembab,
-                                borderColor: '#3b82f6', // Blue 500
-                                borderWidth: 3,
-                                backgroundColor: gradientLembab,
-                                fill: true,
-                                tension: 0.4,
-                                pointBackgroundColor: '#3b82f6',
-                                pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6
-                            },
-                            {
-                                label: 'Lembab Tanah (%)',
-                                data: chartDataSoil,
-                                borderColor: '#06b6d4', // Cyan 500
-                                borderWidth: 3,
-                                backgroundColor: 'transparent',
-                                fill: false,
-                                borderDash: [5, 5],
-                                tension: 0.4,
-                                pointBackgroundColor: '#06b6d4',
-                                pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: 'pH Tanah',
-                                data: chartDataPh,
-                                borderColor: '#3b82f6', // Blue 500
-                                borderWidth: 3,
-                                backgroundColor: 'transparent',
-                                fill: false,
-                                tension: 0.4,
-                                pointBackgroundColor: '#3b82f6',
-                                pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: 'Cahaya (Lux)',
-                                data: chartDataLight,
-                                borderColor: '#f59e0b', // Amber 500
-                                borderWidth: 3,
-                                backgroundColor: 'transparent',
-                                fill: false,
-                                tension: 0.4,
-                                pointBackgroundColor: '#f59e0b',
-                                pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                yAxisID: 'yLight'
-                            }
-                        ]
+            window.envChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            label: 'Suhu Udara (°C)',
+                            data: chartDataSuhu,
+                            borderColor: '#10b981',
+                            borderWidth: 3,
+                            backgroundColor: gradientSuhu,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Lembab Udara (%)',
+                            data: chartDataLembab,
+                            borderColor: '#3b82f6',
+                            borderWidth: 3,
+                            backgroundColor: gradientLembab,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Lembab Tanah (%)',
+                            data: chartDataSoil,
+                            borderColor: '#06b6d4',
+                            borderWidth: 3,
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointBackgroundColor: '#06b6d4',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'pH Tanah',
+                            data: chartDataPh,
+                            borderColor: '#8b5cf6',
+                            borderWidth: 3,
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#8b5cf6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Cahaya (Lux)',
+                            data: chartDataLight,
+                            borderColor: '#f59e0b',
+                            borderWidth: 3,
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'yLight'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { usePointStyle: true, padding: 20, font: { size: 12, weight: '600' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            bodyFont: { size: 13 },
+                            titleFont: { size: 14, weight: 'bold' }
+                        }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false,
+                    scales: {
+                        y: {
+                            type: 'linear', display: true, position: 'left',
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                            ticks: { font: { size: 11 } },
+                            border: { display: false }
                         },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20,
-                                    font: { size: 12, weight: '600' }
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 23, 42, 0.8)', // Slate 900 with opacity
-                                titleColor: '#fff',
-                                bodyColor: '#cbd5e1', // Slate 300
-                                borderColor: 'rgba(255,255,255,0.1)',
-                                borderWidth: 1,
-                                padding: 12,
-                                boxPadding: 6,
-                                usePointStyle: true,
-                                bodyFont: { size: 13 },
-                                titleFont: { size: 14, weight: 'bold' }
-                            }
+                        yLight: {
+                            type: 'linear', display: true, position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { font: { size: 11 }, color: '#f59e0b' },
+                            border: { display: false }
                         },
-                        scales: {
-                            y: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                grid: {
-                                    color: 'rgba(255,255,255,0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    font: { size: 11 }
-                                },
-                                border: { display: false }
-                            },
-                            yLight: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                grid: {
-                                    drawOnChartArea: false, // only draw grid lines for one axis
-                                },
-                                ticks: {
-                                    font: { size: 11 },
-                                    color: '#f59e0b' // Amber color for visibility
-                                },
-                                border: { display: false }
-                            },
-                            x: {
-                                grid: { display: false, drawBorder: false },
-                                ticks: {
-                                    maxTicksLimit: 8,
-                                    font: { size: 11 }
-                                },
-                                border: { display: false }
-                            }
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { maxTicksLimit: 8, font: { size: 11 } },
+                            border: { display: false }
                         }
                     }
-                });
-
-                // Hubungkan ke HiveMQ Broker via WebSockets untuk Telemetri Real-Time
-                const mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
-                    clientId: 'sena_web_' + Math.random().toString(16).substr(2, 8)
-                });
-
-                const activeDeviceCode = '{{ $activeDevice ? $activeDevice->device_code : "" }}';
-
-                mqttClient.on('connect', function () {
-                    console.log('Connected to MQTT via WebSockets');
-                    if (activeDeviceCode) {
-                        mqttClient.subscribe('sena/tx/' + activeDeviceCode, function (err) {
-                            if (!err) {
-                                console.log('Subscribed to real-time telemetry: sena/tx/' + activeDeviceCode);
-                            }
-                        });
-                    }
-                });
-
-                mqttClient.on('message', function (topic, message) {
-                    try {
-                        const payload = JSON.parse(message.toString());
-                        console.log('Live Telemetry:', payload);
-
-                        // Update Sensors
-                        if (payload.ph !== undefined) {
-                            document.getElementById('val_ph').innerText = payload.ph;
-                            document.getElementById('ring_ph').style.strokeDashoffset = 125.6 - ((payload.ph / 14) * 125.6);
-                        }
-                        if (payload.soil_moisture !== undefined) {
-                            document.getElementById('val_soil').innerText = payload.soil_moisture;
-                            document.getElementById('ring_soil').style.strokeDashoffset = 125.6 - ((payload.soil_moisture / 100) * 125.6);
-                        }
-                        if (payload.light_intensity !== undefined) {
-                            document.getElementById('val_light').innerText = payload.light_intensity;
-                            document.getElementById('ring_light').style.strokeDashoffset = 125.6 - ((payload.light_intensity / 2000) * 125.6);
-                        }
-                        if (payload.temperature !== undefined) {
-                            document.getElementById('val_temp').innerText = payload.temperature;
-                            document.getElementById('ring_temp').style.strokeDashoffset = 125.6 - ((payload.temperature / 50) * 125.6);
-                        }
-                        if (payload.humidity !== undefined) {
-                            document.getElementById('val_hum').innerText = payload.humidity;
-                            document.getElementById('ring_hum').style.strokeDashoffset = 125.6 - ((payload.humidity / 100) * 125.6);
-                        }
-
-                        // Sync Pump Status if supplied from Device
-                        if (payload.pump_state !== undefined) {
-                            const devicePumpOn = payload.pump_state == 1 || payload.pump_state === true;
-                            if (devicePumpOn !== isPumpOn) {
-                                isPumpOn = devicePumpOn;
-                                if (isPumpOn) {
-                                    // Turn ON UI
-                                    pumpBtn.classList.add('bg-emerald-500', 'border-emerald-400');
-                                    pumpBtn.classList.remove('bg-white/10', 'border-white/20');
-                                    pumpHandle.classList.add('translate-x-14');
-                                    let pIcon = pumpHandle.querySelector('svg');
-                                    if(pIcon) pIcon.classList.replace('text-gray-400', 'text-emerald-500');
-                                    pumpStatusLabel.textContent = 'HIDUP';
-                                    pumpStatusLabel.classList.replace('text-white/40', 'text-emerald-300');
-                                    pumpStatusLabel.classList.replace('bg-black/30', 'bg-emerald-500/20');
-                                    pumpStatusLabel.classList.add('border', 'border-emerald-500/30');
-                                    pumpIndicatorBox.classList.add('pump-active', 'border-blue-500/30');
-                                    pumpBgGlow.classList.replace('bg-blue-500/0', 'bg-blue-500/10');
-                                    pumpVisual.classList.replace('bg-white/5', 'bg-blue-500/20');
-                                    pumpSpin.classList.add('animate-spin-slow', 'border-blue-400', 'opacity-80');
-                                    pumpSpin.classList.remove('opacity-30', 'border-white/10');
-                                    let sIcon = pumpSpin.querySelector('svg');
-                                    if(sIcon) sIcon.classList.replace('text-white/20', 'text-blue-300');
-                                } else {
-                                    // Turn OFF UI
-                                    pumpBtn.classList.remove('bg-emerald-500', 'border-emerald-400');
-                                    pumpBtn.classList.add('bg-white/10', 'border-white/20');
-                                    pumpHandle.classList.remove('translate-x-14');
-                                    let pIcon = pumpHandle.querySelector('svg');
-                                    if(pIcon) pIcon.classList.replace('text-emerald-500', 'text-gray-400');
-                                    pumpStatusLabel.textContent = 'MATI';
-                                    pumpStatusLabel.classList.replace('text-emerald-300', 'text-white/40');
-                                    pumpStatusLabel.classList.replace('bg-emerald-500/20', 'bg-black/30');
-                                    pumpStatusLabel.classList.remove('border', 'border-emerald-500/30');
-                                    pumpIndicatorBox.classList.remove('pump-active', 'border-blue-500/30');
-                                    pumpBgGlow.classList.replace('bg-blue-500/10', 'bg-blue-500/0');
-                                    pumpVisual.classList.replace('bg-blue-500/20', 'bg-white/5');
-                                    pumpSpin.classList.remove('animate-spin-slow', 'border-blue-400', 'opacity-80');
-                                    pumpSpin.classList.add('opacity-30', 'border-white/10');
-                                    let sIcon = pumpSpin.querySelector('svg');
-                                    if(sIcon) sIcon.classList.replace('text-blue-300', 'text-white/20');
-                                }
-                            }
-                        }
-
-                        // Update Time age
-                        const ageDisp = document.getElementById('data-age');
-                        if (ageDisp) {
-                            ageDisp.innerHTML = `<i class="fa-solid fa-clock mr-1 text-emerald-400"></i> Last Data: Just now`;
-                        }
-
-                        // Update Chart Instance realtime
-                        if (window.envChartInstance && payload.temperature !== undefined) {
-                            const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                            window.envChartInstance.data.labels.push(timeStr);
-                            window.envChartInstance.data.datasets[0].data.push(payload.temperature);
-                            window.envChartInstance.data.datasets[1].data.push(payload.humidity);
-                            window.envChartInstance.data.datasets[2].data.push(payload.soil_moisture);
-                            window.envChartInstance.data.datasets[3].data.push(payload.ph);
-                            window.envChartInstance.data.datasets[4].data.push(payload.light_intensity);
-                            
-                            // Keep max 24 dots
-                            if (window.envChartInstance.data.labels.length > 24) {
-                                window.envChartInstance.data.labels.shift();
-                                window.envChartInstance.data.datasets.forEach(doc => doc.data.shift());
-                            }
-                            window.envChartInstance.update('none');
-                        }
-                    } catch (e) {
-                        console.error('Error parsing MQTT message', e);
-                    }
-                });
+                }
+            });
             @endif
+
+            // ─── Update initial fuzzy card from server data ─────────
+            @if(isset($fuzzyResult) && $fuzzyResult)
+                updateFuzzyCard({!! json_encode($fuzzyResult) !!});
+            @endif
+
+            // ══════════════════════════════════════════════════════════
+            //  REALTIME POLLING ENGINE
+            //  Fetches /dashboard/data every 10 seconds and updates
+            //  all sensor cards, progress rings, chart, pump status,
+            //  fuzzy evaluation, and timestamps automatically.
+            // ══════════════════════════════════════════════════════════
+            let pollFailCount = 0;
+
+            async function pollDashboardData() {
+                if (!activeDeviceId) return;
+
+                try {
+                    const url = `${DASHBOARD_DATA_URL}?device_id=${activeDeviceId}&_=${Date.now()}`;
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    pollFailCount = 0;  // Reset on success
+
+                    if (!data.success) return;
+
+                    // ── Update Sensor Values ────────────────────────
+                    if (data.latest) {
+                        const L = data.latest;
+                        updateSensorValue('val_ph', L.ph, 'pH');
+                        updateSensorValue('val_soil', L.soil_moisture, '%');
+                        updateSensorValue('val_light', L.light_intensity, 'lux');
+                        updateSensorValue('val_temp', L.temperature, '°C');
+                        updateSensorValue('val_hum', L.humidity, '%');
+
+                        // Update Progress Rings
+                        updateRing('ring_ph', L.ph, 14);
+                        updateRing('ring_soil', L.soil_moisture, 100);
+                        updateRing('ring_light', L.light_intensity, 2000);
+                        updateRing('ring_temp', L.temperature, 50);
+                        updateRing('ring_hum', L.humidity, 100);
+
+                        // Update "Last Data" age
+                        const ageEl = document.getElementById('data-age');
+                        if (ageEl && L.time_ago) {
+                            ageEl.innerHTML = `<i class="fa-solid fa-clock mr-1 text-emerald-400"></i> Last Data: ${L.time_ago}`;
+                        }
+                    }
+
+                    // ── Update Fuzzy Evaluation ─────────────────────
+                    if (data.fuzzy_evaluation) {
+                        updateFuzzyCard(data.fuzzy_evaluation);
+                    }
+
+                    // ── Update Chart ────────────────────────────────
+                    if (window.envChartInstance && data.chart) {
+                        const chart = window.envChartInstance;
+                        chart.data.labels = data.chart.labels || [];
+                        chart.data.datasets[0].data = data.chart.temperature || [];
+                        chart.data.datasets[1].data = data.chart.humidity || [];
+                        chart.data.datasets[2].data = data.chart.soil_moisture || [];
+                        chart.data.datasets[3].data = data.chart.ph || [];
+                        chart.data.datasets[4].data = data.chart.light_intensity || [];
+                        chart.update('none');  // 'none' = no animation for smooth update
+                    }
+
+                    console.log(`[Poll] Data updated @ ${new Date().toLocaleTimeString()}`);
+
+                } catch (err) {
+                    pollFailCount++;
+                    console.warn(`[Poll] Error (attempt ${pollFailCount}):`, err.message);
+                }
+            }
+
+            // Initial poll on page load + start interval
+            pollDashboardData();
+            setInterval(pollDashboardData, POLL_INTERVAL);
         </script>
     @endif
 </body>
