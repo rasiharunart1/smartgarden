@@ -352,7 +352,7 @@
             // ─── Config ─────────────────────────────────────────────
             const POLL_INTERVAL = 10000;  // Poll setiap 10 detik
             const activeDeviceId = {{ $activeDevice ? $activeDevice->id : 'null' }};
-            const DASHBOARD_DATA_URL = '{{ route("dashboard.data") }}';
+            const DASHBOARD_DATA_URL = '/dashboard/data';
 
             // ─── Clock Update ───────────────────────────────────────
             function updateTime() {
