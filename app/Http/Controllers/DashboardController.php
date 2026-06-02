@@ -115,6 +115,7 @@ class DashboardController extends Controller
             'device_status' => $activeDevice->status,
             'is_online' => $activeDevice->is_online,
             'pump_state' => $activeDevice->pump_state,
+            'control_mode' => (int) $activeDevice->control_mode,
             'latest' => $latestLog ? [
                 'ph' => $latestLog->ph,
                 'soil_moisture' => $latestLog->soil_moisture,

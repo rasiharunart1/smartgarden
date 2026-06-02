@@ -100,11 +100,52 @@ class DeviceController extends Controller
 
         $validated = $request->validate(['pump_state' => 'required|boolean']);
 
-        $device->update(['pump_state' => $validated['pump_state']]);
+        // Kalau user toggle pompa manual, otomatis set ke mode manual
+        $device->update([
+            'pump_state' => $validated['pump_state'],
+            'control_mode' => 1, // Manual mode
+        ]);
 
         // Queue command untuk device ambil di next polling cycle
         \App\Http\Controllers\Api\CommandController::queuePumpToggle($device, $validated['pump_state']);
 
-        return response()->json(['success' => true, 'pump_state' => $device->pump_state]);
+        return response()->json([
+            'success' => true,
+            'pump_state' => $device->pump_state,
+            'control_mode' => $device->control_mode,
+        ]);
+    }
+
+    /**
+     * Set control mode: 0 = Auto (Fuzzy Logic), 1 = Manual (Dashboard)
+     */
+    public function setControlMode(Device $device, Request $request)
+    {
+        if ($device->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'Unauthorized access'], 403);
+        }
+
+        $validated = $request->validate([
+            'control_mode' => 'required|integer|in:0,1',
+        ]);
+
+        $updateData = ['control_mode' => $validated['control_mode']];
+
+        // Jika switch ke Auto mode, biarkan fuzzy logic yang tentukan pompa
+        // Reset pump_state agar ESP32 pakai keputusan fuzzy di cycle berikutnya
+        if ($validated['control_mode'] == 0) {
+            $updateData['pump_state'] = false;
+        }
+
+        $device->update($updateData);
+
+        // Queue command ke ESP32 agar langsung switch mode
+        \App\Http\Controllers\Api\CommandController::queueModeChange($device, $validated['control_mode']);
+
+        return response()->json([
+            'success' => true,
+            'control_mode' => $device->control_mode,
+            'pump_state' => $device->pump_state,
+        ]);
     }
 }

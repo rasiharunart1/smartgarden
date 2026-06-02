@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
     // Device CRUD
     Route::resource('devices', DeviceController::class);
     Route::post('/devices/{device}/toggle-pump', [DeviceController::class, 'togglePump'])->name('devices.toggle_pump');
+    Route::post('/devices/{device}/control-mode', [DeviceController::class, 'setControlMode'])->name('devices.control_mode');
     Route::get('/devices/{device}/fuzzy', [\App\Http\Controllers\FuzzyConfigController::class, 'edit'])->name('devices.fuzzy');
     Route::put('/devices/{device}/fuzzy', [\App\Http\Controllers\FuzzyConfigController::class, 'update'])->name('devices.fuzzy.update');
     

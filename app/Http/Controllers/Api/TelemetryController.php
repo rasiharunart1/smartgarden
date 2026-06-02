@@ -87,6 +87,7 @@ class TelemetryController extends Controller
                 'data'    => new DeviceLogResource($log),
                 'device_controls' => [
                     'pump_state' => $device->pump_state,
+                    'control_mode' => (int) $device->control_mode,
                 ],
                 'fuzzy_config' => [
                     'moisture_kering_max' => (float) $fuzzyConfig->moisture_kering_max,

@@ -16,6 +16,7 @@ class Device extends Model
         'location',
         'status',
         'pump_state',
+        'control_mode',
         'photo',
         'last_seen_at',
     ];

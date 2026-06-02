@@ -106,4 +106,25 @@ class CommandController extends Controller
 
         return $command;
     }
+
+    /**
+     * Queue a control mode change command for a specific device.
+     * mode: 0 = Auto (Fuzzy Logic), 1 = Manual (Dashboard Override)
+     */
+    public static function queueModeChange(Device $device, int $mode)
+    {
+        $command = [
+            'type' => 'mode_change',
+            'control_mode' => $mode,
+            'pump_state' => $device->pump_state,
+            'timestamp' => now()->toIso8601String()
+        ];
+
+        // Store in cache for 30 seconds
+        Cache::put('device_command_' . $device->id, $command, 30);
+
+        Log::info("Queued mode change for device {$device->id}: " . ($mode == 0 ? 'AUTO' : 'MANUAL'));
+
+        return $command;
+    }
 }

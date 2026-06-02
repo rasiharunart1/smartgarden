@@ -288,9 +288,33 @@
 
                 <!-- Panel Kontrol Pompa -->
                 <div class="space-y-4">
+
+                    <!-- Mode Toggle: Auto / Manual -->
+                    <div class="glass rounded-3xl p-5 transition-all duration-500">
+                        <h2 class="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-amber-400"></i> Mode Kontrol
+                        </h2>
+                        <div id="modeToggleGroup" class="flex rounded-xl overflow-hidden border border-white/20 bg-black/20">
+                            <button id="btnModeAuto" onclick="setControlMode(0)"
+                                class="flex-1 py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300">
+                                <i class="fa-solid fa-robot"></i> AUTO
+                            </button>
+                            <button id="btnModeManual" onclick="setControlMode(1)"
+                                class="flex-1 py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300">
+                                <i class="fa-solid fa-hand"></i> MANUAL
+                            </button>
+                        </div>
+                        <p id="modeDescription" class="text-[10px] text-white/40 mt-2 text-center italic">Fuzzy logic menentukan pompa otomatis</p>
+                    </div>
+
                     <!-- Saklar Pompa -->
-                    <div
-                        class="glass rounded-3xl p-6 flex flex-col items-center justify-between h-[180px] hover:bg-white/5 transition-colors">
+                    <div id="pumpCard"
+                        class="glass rounded-3xl p-6 flex flex-col items-center justify-between h-[180px] hover:bg-white/5 transition-all duration-500 relative overflow-hidden">
+                        <!-- Overlay saat Auto Mode -->
+                        <div id="pumpAutoOverlay" class="absolute inset-0 bg-black/40 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-2 transition-opacity duration-300" style="display:none;">
+                            <i class="fa-solid fa-robot text-2xl text-amber-400 animate-pulse"></i>
+                            <span class="text-xs text-white/70 font-medium">Dikontrol Fuzzy Logic</span>
+                        </div>
                         <h2 class="text-sm font-bold tracking-wider uppercase text-white/70">POMPA AIR</h2>
                         <button id="pumpBtn"
                             class="relative inline-flex h-16 w-28 items-center rounded-full transition-all duration-300 bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-transparent">
@@ -365,6 +389,67 @@
             setInterval(updateTime, 1000);
             updateTime();
 
+            // ─── Control Mode (Auto/Manual) ─────────────────────────
+            let currentMode = {{ $activeDevice ? (int)$activeDevice->control_mode : 0 }};
+
+            function updateModeUI(mode) {
+                currentMode = mode;
+                const btnAuto = document.getElementById('btnModeAuto');
+                const btnManual = document.getElementById('btnModeManual');
+                const desc = document.getElementById('modeDescription');
+                const overlay = document.getElementById('pumpAutoOverlay');
+
+                if (mode === 0) {
+                    // AUTO mode
+                    btnAuto.className = 'flex-1 py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300 bg-amber-500 text-white shadow-lg shadow-amber-500/30';
+                    btnManual.className = 'flex-1 py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300 text-white/50 hover:text-white/80 hover:bg-white/5';
+                    if (desc) desc.textContent = 'Fuzzy logic menentukan pompa otomatis';
+                    if (overlay) overlay.style.display = 'flex';
+                } else {
+                    // MANUAL mode
+                    btnManual.className = 'flex-1 py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30';
+                    btnAuto.className = 'flex-1 py-2.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300 text-white/50 hover:text-white/80 hover:bg-white/5';
+                    if (desc) desc.textContent = 'Anda mengontrol pompa secara manual';
+                    if (overlay) overlay.style.display = 'none';
+                }
+            }
+
+            function setControlMode(mode) {
+                if (!activeDeviceId || mode === currentMode) return;
+
+                // Optimistic UI update
+                updateModeUI(mode);
+
+                fetch(`/devices/${activeDeviceId}/control-mode`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ control_mode: mode })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Jika switch ke Auto, reset pump UI ke OFF (fuzzy takeover)
+                        if (data.control_mode === 0) {
+                            setPumpUI(false);
+                        }
+                    } else {
+                        // Revert on failure
+                        updateModeUI(mode === 0 ? 1 : 0);
+                    }
+                })
+                .catch(err => {
+                    console.error('Mode change error:', err);
+                    updateModeUI(mode === 0 ? 1 : 0);
+                });
+            }
+
+            // Set initial mode UI
+            updateModeUI(currentMode);
+
             // ─── Pump Control ───────────────────────────────────────
             const pumpBtn = document.getElementById('pumpBtn');
             const pumpHandle = document.getElementById('pumpHandle');
@@ -421,6 +506,12 @@
 
             pumpBtn.addEventListener('click', () => {
                 if (!activeDeviceId) return;
+
+                // Clicking pump manually → auto-switch to Manual mode
+                if (currentMode === 0) {
+                    updateModeUI(1);
+                }
+
                 isPumpOn = !isPumpOn;
                 setPumpUI(isPumpOn);
 
@@ -706,6 +797,11 @@
 
                     // ── Update Device Online/Offline Status ──────────
                     updateDeviceStatus(data.is_online);
+
+                    // ── Sync Control Mode dari Server ─────────────────
+                    if (data.control_mode !== undefined && data.control_mode !== currentMode) {
+                        updateModeUI(data.control_mode);
+                    }
 
                     // ── Sync Pump Status dari Server ─────────────────
                     if (data.pump_state !== undefined && data.pump_state !== isPumpOn) {

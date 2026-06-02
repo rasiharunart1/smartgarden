@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('devices', function (Blueprint $table) {
-            //
+            // control_mode: 0 = auto (fuzzy logic), 1 = manual (dashboard)
+            $table->tinyInteger('control_mode')->default(0)->after('pump_state');
         });
     }
 
@@ -22,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('devices', function (Blueprint $table) {
-            //
+            $table->dropColumn('control_mode');
         });
     }
 };

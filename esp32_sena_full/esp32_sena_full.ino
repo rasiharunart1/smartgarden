@@ -616,23 +616,24 @@ void sendTelemetry() {
                 Serial.println("[Fuzzy] Konfigurasi diperbarui dari server!");
             }
 
-            // Terima perintah pompa dari server (kontrol manual dashboard)
-            // NOTE: Ini adalah update untuk cycle berikutnya
+            // Terima mode kontrol & perintah pompa dari server
+            // control_mode: 0 = AUTO (Fuzzy), 1 = MANUAL (Dashboard)
             if (resDoc.containsKey("device_controls")) {
                 bool srvPump = resDoc["device_controls"]["pump_state"] | false;
+                int srvMode = resDoc["device_controls"]["control_mode"] | 0;
                 
-                // Cek apakah ada command override dari server
-                // Jika different dari fuzzy, berarti user memberikan override manual
-                if (srvPump != fuzzyPumpDecision) {
-                    pumpControlMode = 1; // Switch ke Server Override mode
+                // Sync mode dari server
+                if (srvMode == 0) {
+                    // Server bilang AUTO → kembali ke Fuzzy Logic
+                    pumpControlMode = 0;
+                    Serial.println("[SERVER] Mode: AUTO (Fuzzy Logic)");
+                } else if (srvMode == 1) {
+                    // Server bilang MANUAL → ikuti perintah pompa dari server
+                    pumpControlMode = 1;
                     serverPumpCommand = srvPump;
                     serverCommandTimestamp = millis();
-                    Serial.printf("[SERVER] Override pompa dari dashboard → %s (valid 5 menit)\n",
+                    Serial.printf("[SERVER] Mode: MANUAL → Pompa %s\n",
                                   srvPump ? "ON" : "OFF");
-                } else {
-                    // Server tidak override, kembali ke fuzzy mode
-                    pumpControlMode = 0;
-                    Serial.println("[SERVER] Sesuai dengan fuzzy decision, tetap mode FUZZY");
                 }
             }
         } else {
@@ -862,6 +863,23 @@ void checkServerCommands() {
                 if (cfg.containsKey("ph_basa_min"))         fuzzy.ph_basa_min         = cfg["ph_basa_min"];
                 
                 Serial.println("[Command] Fuzzy Config diperbarui!");
+            }
+            // ── Handle: Mode Change ─────────────────────────────────
+            else if (cmdType == "mode_change") {
+                int newMode = cmd["control_mode"] | 0;
+                bool newPumpState = cmd["pump_state"] | false;
+
+                if (newMode == 0) {
+                    pumpControlMode = 0; // AUTO - Fuzzy Logic
+                    Serial.println("[Command] Mode → AUTO (Fuzzy Logic)");
+                } else {
+                    pumpControlMode = 1; // MANUAL
+                    serverPumpCommand = newPumpState;
+                    serverCommandTimestamp = millis();
+                    controlPump(newPumpState);
+                    Serial.printf("[Command] Mode → MANUAL, Pompa %s\n",
+                                  newPumpState ? "ON" : "OFF");
+                }
             }
         }
     } else {
