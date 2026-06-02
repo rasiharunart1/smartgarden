@@ -6,20 +6,16 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('devices', function (Blueprint $table) {
-            // control_mode: 0 = auto (fuzzy logic), 1 = manual (dashboard)
-            $table->tinyInteger('control_mode')->default(0)->after('pump_state');
+            if (!Schema::hasColumn('devices', 'control_mode')) {
+                // control_mode: 0 = auto (fuzzy logic), 1 = manual (dashboard)
+                $table->tinyInteger('control_mode')->default(0)->after('pump_state');
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('devices', function (Blueprint $table) {

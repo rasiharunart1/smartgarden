@@ -6,19 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('devices', function (Blueprint $table) {
-            $table->timestamp('last_seen_at')->nullable()->after('pump_state');
+            if (!Schema::hasColumn('devices', 'last_seen_at')) {
+                $table->timestamp('last_seen_at')->nullable()->after('pump_state');
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('devices', function (Blueprint $table) {
